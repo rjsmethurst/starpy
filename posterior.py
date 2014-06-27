@@ -147,7 +147,14 @@ def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
         """
     tq, tau = theta
     pred_nuvu, pred_ur = predict_c_one(theta, age)
-    return -0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
+#    print 'theta: ', theta
+#    print 'predicted nuvu: ', pred_nuvu
+#    print 'obserbed nuvu: ', nuvu
+#    print 'chi sq nuvu: ', -0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
+#    print 'predicted ur: ', pred_ur
+#    print 'observed ur: ', ur
+#    print 'chi sq ur: ', -0.5*((ur-pred_ur)**2/sigma_ur**2)
+    return -0.5*N.log(2*N.pi*sigma_ur**2)-0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*N.log10(2*N.pi*sigma_nuvu**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
 
 
 def lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
@@ -214,7 +221,7 @@ def lnprior(w, theta):
         """
     mu_tqs, mu_taus, mu_tqd, mu_taud, sig_tqs, sig_taus, sig_tqd, sig_taud = w
     ts, taus, td, taud = theta
-    if 0.0 < ts < 13.807108309208775 and 0.0 < taus < 5.0 and 0.0 < td < 13.807108309208775 and 0.0 < taud < 5.0:
+    if 0.002 <= ts <= 13.807108309208775 and 0.002 <= taus <= 5.0 and 0.002 <= td < 13.807108309208775 and 0.002 <= taud <= 5.0:
         ln_tqs = - 0.5*((ts-mu_tqs)**2/sig_tqs**2) 
         ln_taus = - 0.5*((taus-mu_taus)**2/sig_taus**2) 
         ln_tqd = - 0.5*((td-mu_tqd)**2/sig_tqd**2)
