@@ -1,3 +1,8 @@
+""" A fantastic python code to determine the quenched SFH parameters of galaxies using emcee (http://dan.iel.fm/emcee/current/). This file contains all the functions needed to determine the mean SFH parameters of a population.
+    
+    N.B. The data files .ised_ASCII contain the extracted bc03 models and have a 0 in the origin at [0,0]. The first row contains the model ages (from the second column) - data[0,1:]. The first column contains the model lambda values (from the second row) - data[1:,0]. The remaining data[1:,1:] are the flux values at each of the ages (columns, x) and lambda (rows, y) values 
+    """
+
 import numpy as N
 import scipy as S
 import pylab as P
@@ -8,9 +13,6 @@ import pyfits as F
 import emcee
 import triangle
 import time
-from scipy import linalg
-from itertools import product
-from scipy.interpolate import griddata
 from astropy.cosmology import FlatLambdaCDM
 from scipy.stats import kde
 
@@ -22,35 +24,64 @@ P.rc('xtick', labelsize='medium')
 P.rc('ytick', labelsize='medium')
 P.rc('axes', labelsize='x-large')
 
-""" The data files .ised_ASCII contain the extracted bc03 models and have a 0 in the origin at [0,0]. The first row contains the model ages (from the second column) - data[0,1:]. The first column contains the model lambda values (from the second row) - data[1:,0]. The remaining data[1:,1:] are the flux values at each of the ages (columns, x) and lambda (rows, y) values 
-"""
-
-
-
+"""We first define the directory in which we will find the BC03 model, extracted from the original files downloaded from the BC03 website into a usable format. Here we implement a solar metallicity model with a Chabrier IMF."""
 dir ='/Volumes/Data/smethurst/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
 model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
 data = N.loadtxt(dir+model)
 n=0
 
 # Function which given a tau and a tq calculates the sfr at all times
-def expsfh(tau, tq, time):
-    ssfr = 2.5*(((10**10.27)/1E10)**(-0.1))*(time/3.5)**(-2.2) #ssfr as defined by Peng et al (2010)
-    c_sfr = N.interp(tq, time, ssfr)*(1E10)/(1E9) # definition is for 10^10 M_solar galaxies and per gyr - convert to M_solar/year
+def expsfh(tq, tau, time):
+    """ This function when given a single combination of [tq, tau] values will calcualte the SFR at all times. First calculate the sSFR at all times as defined by Peng et al. (2010) - then the SFR at the specified tq of quenching and set the SFR as constant at this value before this time. Beyond this time the SFR is an exponentially declining function with timescale tau. 
+        
+        INPUT:
+        :tau:
+        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5. 
+        
+        :tq: 
+        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
+        :time:
+        An array of time values at which the SFR is calcualted at each step. 
+        
+        RETURNS:
+        :sfr:
+        Array of the same dimensions of time containing the sfr at each timestep.
+        """
+    ssfr = 2.5*(((10**10.27)/1E10)**(-0.1))*(time/3.5)**(-2.2)
+    c_sfr = N.interp(tq, time, ssfr)*(1E10)/(1E9)
+    # definition is for 10^10 M_solar galaxies and per gyr - convert to M_solar/year
     a = time.searchsorted(tq)
     sfr = N.ones(len(time))*c_sfr
     sfr[a:] = c_sfr*N.exp(-(time[a:]-tq)/tau)
     return sfr
 
-# predict the colour of a galaxy of a given age given a sf model of tau and tq
 def predict_c_one(theta, age):
-    # Time, tq and tau are in units of Gyrs
+    """ This function predicts the u-r and nuv-u colours of a galaxy with a SFH defined by [tq, tau], according to the BC03 model at a given "age" i.e. observation time. It calculates the colours at all times then interpolates for the observed age - it has to this in order to work out the cumulative mass across the SFH to determine how much each population of stars contributes to the flux at each time step. 
+        
+        :theta:
+        An array of size (1,2) containing the values [tq, tau] in Gyr.
+        
+        :tq:
+        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
+        
+        :tau:
+        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5.
+        
+        :age:
+        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr. 
+        
+        RETURNS:
+        :nuv_u_age:
+        Array the same shape as :age: with the nuv-u colour values at each given age for the specified :theta: values
+        
+        :u_r_age:
+        Array the same shape as :age: with the u-r colour values at each given age for the specified :theta: values
+        """
     ti = N.arange(0, 0.01, 0.003)
     t = N.linspace(0,14.0,100)
     t = N.append(ti, t[1:])
     tq, tau = theta
-    sfr = expsfh(tau, tq, t)
-    nuv_u = N.zeros_like(sfr)
-    u_r = N.zeros_like(sfr)
+    sfr = expsfh(tq, tau, t)
     # Work out total flux at each time given the sfh model of tau and tq (calls fluxes function)
     total_flux = fluxes.assign_total_flux(data[0,1:], data[1:,0], data[1:,1:], t*1E9, sfr)
     # Calculate fluxes from the flux at all times then interpolate to get one colour for the age you are observing the galaxy at - if many galaxies are being observed, this also works with an array of ages to give back an array of colours
@@ -59,30 +90,102 @@ def predict_c_one(theta, age):
     u_r_age = N.interp(age, t, u_r)
     return nuv_u_age, u_r_age
 
-#Calculate colours and magnitudes for functions above
-def get_colours(time_steps, sfh, data):
-    nuvmag = get_mag(time_steps, sfh, nuvwave, nuvtrans, data)
-    umag = get_mag(time_steps, sfh, uwave, utrans, data)
-    rmag = get_mag(time_steps, sfh, rwave, rtrans, data)
+
+def get_colours(time, flux, data):
+    """" Calculates the colours of a given sfh fluxes across time given the BC03 models from the magnitudes of the SED.
+        
+        :time:
+        Array of times at which the colours should be calculated. In units of Gyrs. 
+        
+        :flux:
+        SED of fluxes describing the calcualted SFH. Returned from the assign_total_flux function in fluxes.py
+        
+        :data:
+        BC03 model values for wavelengths, time steps and fluxes. The wavelengths are needed to calculate the magnitudes. 
+        
+        RETURNS:
+        :nuv_u: :u_r:
+        Arrays the same shape as :time: with the predicted nuv-u and u-r colours
+        """
+    nuvmag = fluxes.calculate_AB_mag(time, data[1:,0], flux, nuvwave, nuvtrans)
+    umag = fluxes.calculate_AB_mag(time, data[1:,0], flux, uwave, utrans)
+    rmag = fluxes.calculate_AB_mag(time, data[1:,0], flux, rwave, rtrans)
     nuv_u = nuvmag - umag
     u_r = umag - rmag
     return nuv_u, u_r
 
-def get_mag(time_steps, total_flux, wave, trans, data):
-    mag = fluxes.calculate_AB_mag(time_steps, data[1:,0],total_flux, wave, trans)
-    return mag
 
-# Function for likelihood of model given all galaxies
 def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
+    """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
+        
+        :theta:
+        An array of size (1,2) containing the values [tq, tau] in Gyr.
+        
+        :tq:
+        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
+        
+        :tau:
+        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5.
+        
+        :ur:
+        Observed u-r colour of a galaxy; k-corrected.
+        
+        :sigma_ur:
+        Error on the observed u-r colour of a galaxy
+        
+        :nuvu:
+        Observed nuv-u colour of a galaxy; k-corrected.
+        
+        :sigma_nuvu:
+        Error on the observed nuv-u colour of a galaxy
+        
+        :age:
+        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
+        
+        RETURNS:
+        Array of same shape as :age: containing the likelihood for each galaxy at the given :theta:
+        """
     tq, tau = theta
     pred_nuvu, pred_ur = predict_c_one(theta, age)
-    #inv_sigma_ur = 1./((sigma_ur**2)*(2*N.pi))**0.5
-    #inv_sigma_nuvu = 1./((sigma_nuvu**2)*(2*N.pi))**0.5
-    #return N.log(inv_sigma)-0.5*((ur-pred_ur)**2/sigma_ur**2) #- 0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
     return -0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
 
-# Function which includes GZ likelihoods and sums across all galaxies to return one value for a given set of theta 
+
 def lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
+    """Function which takes the likelihood for ONE quenching model for both disc and smooth like galaxies and sums across all galaxies to return one value for a given set of theta = [tqd, taud, tqs, taus]. It also incorporates the morphological classifications from Galaxy Zoo for a smooth and disc galaxy. 
+        
+        :theta:
+        An array of size (1,4) containing the values [tq, tau] for both smooth and dsic galaxies in Gyr.
+        
+        :tq:
+        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time. Can be either for smooth or disc galaxies.
+        
+        :tau:
+        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5. Can be either for smooth or disc galaxies.
+        
+        :ur:
+        Observed u-r colour of a galaxy; k-corrected.
+        
+        :sigma_ur:
+        Error on the observed u-r colour of a galaxy
+        
+        :nuvu:
+        Observed nuv-u colour of a galaxy; k-corrected.
+        
+        :sigma_nuvu:
+        Error on the observed nuv-u colour of a galaxy
+        
+        :age:
+        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
+        
+        :pd:
+        Galaxy Zoo disc morphological classification debiased vote fraction
+        
+        :ps:
+        Galaxy Zoo smooth morphological classification debiased vote fraction
+        
+        RETURNS:
+        One value of the likelihood at the given :theta: summed over all the galaxies in the sample
+        """
     ts, taus, td, taud = theta
     d = lnlike_one([td, taud], ur, sigma_ur, nuvu, sigma_nuvu, age)
     s = lnlike_one([ts, taus], ur, sigma_ur, nuvu, sigma_nuvu, age)
@@ -92,20 +195,75 @@ def lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
 
 # Prior likelihood on theta values given the inital w values assumed for the mean and stdev
 def lnprior(w, theta):
+    """ Function to calcualted the prior likelihood on theta values given the inital w values assumed for the mean and standard deviation of the tq and tau parameters. Defined ranges are specified - outside these ranges the function returns -N.inf and does not calculate the posterior probability. 
+        
+        :w:
+        Prior assumptions on the distribution of theta for disc and smooth galaxies. Assumed normal distribution for all parameters.
+        
+        :theta: 
+        An array of size (1,4) containing the values [tq, tau] for both smooth and disc galaxies in Gyr.
+        
+        :tq:
+        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time. Can be either for smooth or disc galaxies.
+        
+        :tau:
+        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5. Can be either for smooth or disc galaxies.
+        
+        RETURNS:
+        Value of the prior at the specified :theta: value.
+        """
     mu_tqs, mu_taus, mu_tqd, mu_taud, sig_tqs, sig_taus, sig_tqd, sig_taud = w
     ts, taus, td, taud = theta
     if 0.0 < ts < 13.807108309208775 and 0.0 < taus < 5.0 and 0.0 < td < 13.807108309208775 and 0.0 < taud < 5.0:
-        ln_tqs = - 0.5*((ts-mu_tqs)**2/sig_tqs**2) #- N.log((2*N.pi*sig_tqs**2)**0.5)
-        ln_taus = - 0.5*((taus-mu_taus)**2/sig_taus**2) #-N.log((2*N.pi*sig_taus**2)**0.5)
-        ln_tqd = - 0.5*((td-mu_tqd)**2/sig_tqd**2) #-N.log((2*N.pi*sig_tqd**2)**0.5) 
-        ln_taud = - 0.5*((taud-mu_taud)**2/sig_taud**2) #-N.log((2*N.pi*sig_taud**2)**0.5)
-        #print 'prior', ln_tqs + ln_taus + ln_tqd + ln_taud
+        ln_tqs = - 0.5*((ts-mu_tqs)**2/sig_tqs**2) 
+        ln_taus = - 0.5*((taus-mu_taus)**2/sig_taus**2) 
+        ln_tqd = - 0.5*((td-mu_tqd)**2/sig_tqd**2)
+        ln_taud = - 0.5*((taud-mu_taud)**2/sig_taud**2) 
         return ln_tqs + ln_taus + ln_tqd + ln_taud
     else:
         return -N.inf
 
 # Overall likelihood function combining prior and model
 def lnprob(theta, w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
+    """Overall posterior function combiningin the prior and calculating the likelihood. Also prints out the progress through the code with the use of n. 
+        
+        :theta:
+        An array of size (1,4) containing the values [tq, tau] for both smooth and disc galaxies in Gyr.
+        
+        :tq:
+        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time. Can be either for smooth or disc galaxies.
+        
+        :tau:
+        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5. Can be either for smooth or disc galaxies.
+        
+        :w:
+        Prior assumptions on the distribution of theta for disc and smooth galaxies. Assumed normal distribution for all parameters.
+        
+        :ur:
+        Observed u-r colour of a galaxy; k-corrected. An array of shape (N,1) or (N,).
+        
+        :sigma_ur:
+        Error on the observed u-r colour of a galaxy. An array of shape (N,1) or (N,).
+        
+        :nuvu:
+        Observed nuv-u colour of a galaxy; k-corrected. An array of shape (N,1) or (N,).
+        
+        :sigma_nuvu:
+        Error on the observed nuv-u colour of a galaxy. An array of shape (N,1) or (N,).
+        
+        :age:
+        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr. An array of shape (N,1) or (N,).
+        
+        :pd:
+        Galaxy Zoo disc morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
+        
+        :ps:
+        Galaxy Zoo smooth morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
+        
+        RETURNS:
+        Value of the posterior function for the given :theta: value.
+        
+        """
     global n
     n+=1
     if n %100 == 0:
@@ -117,29 +275,93 @@ def lnprob(theta, w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
 
 
 def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
+    """ Function to implement the emcee EnsembleSampler function for the sample of galaxies input. Burn in is run and calcualted fir the length specified before the sampler is reset and then run for the length of steps specified. 
+        
+        :ndim:
+        The number of parameters in the model that emcee must find. In this case it always 4 with tqs, taus, tqd, taud.
+        
+        :nwalkers:
+        The number of walkers that step around the parameter space. Must be an even integer number larger than ndim. 
+        
+        :nsteps:
+        The number of steps to take in the final run of the MCMC sampler. Integer.
+        
+        :burnin:
+        The number of steps to take in the inital burn-in run of the MCMC sampler. Integer. 
+        
+        :start:
+        The positions in the tq and tau parameter space to start for both disc and smooth parameters. An array of shape (1,4).
+        
+        :w:
+        Prior assumptions on the distribution of theta for disc and smooth galaxies. Assumed normal distribution for all parameters.
+        
+        :ur:
+        Observed u-r colour of a galaxy; k-corrected. An array of shape (N,1) or (N,).
+        
+        :sigma_ur:
+        Error on the observed u-r colour of a galaxy. An array of shape (N,1) or (N,).
+        
+        :nuvu:
+        Observed nuv-u colour of a galaxy; k-corrected. An array of shape (N,1) or (N,).
+        
+        :sigma_nuvu:
+        Error on the observed nuv-u colour of a galaxy. An array of shape (N,1) or (N,).
+        
+        :age:
+        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr. An array of shape (N,1) or (N,).
+        
+        :pd:
+        Galaxy Zoo disc morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
+        
+        :ps:
+        Galaxy Zoo smooth morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
+        
+        RETURNS:
+        :samples:
+        Array of shape (nsteps*nwalkers, 4) containing the positions of the walkers at all steps for all 4 parameters.
+        :samples_save:
+        Location at which the :samples: array was saved to. 
+        
+        """
     if len(age) != len(ur):
         raise SystemExit('Number of ages does not coincide with number of galaxies...')
     p0 = [start + 1e-4*N.random.randn(ndim) for i in range(nwalkers)]
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2, args=(w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps))
-    #burn in 
+    # burn in run 
     pos, prob, state = sampler.run_mcmc(p0, burnin)
     samples = sampler.chain[:,:,:].reshape((-1,ndim))
-    samples_save = '/Volumes/Data/smethurst/Green-Valley-Project/bayesian/find_t_tau/gv/samples_gv_burn_in_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
+    samples_save = '~/samples_burn_in_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
     N.save(samples_save, samples)
     walker_plot(samples, nwalkers, burnin)
     sampler.reset()
     print 'RESET', pos
+    # main sampler run
     sampler.run_mcmc(pos, nsteps)
     samples = sampler.chain[:,:,:].reshape((-1,ndim))
-    samples_save = '/Volumes/Data/smethurst/Green-Valley-Project/bayesian/find_t_tau/gv/samples_gv_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
+    samples_save = '~/samples_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
     N.save(samples_save, samples)
     fig = triangle.corner(samples, labels=[r'$ t_{smooth} $', r'$ \tau_{smooth} $', r'$ t_{disc} $', r'$ \tau_{disc}$'])
     fig.savefig('triangle_t_tau_gv_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf')
-    return samples, fig, samples_save
+    return samples, samples_save
 
 
 #Define function to plot the walker positions as a function of the step
 def walker_plot(samples, nwalkers, limit):
+    """ Plotting function to visualise the steps of the walkers in each parameter dimension for smooth and disc theta values. 
+        
+        :samples:
+        Array of shape (nsteps*nwalkers, 4) produced by the emcee EnsembleSampler in the sample function.
+        
+        :nwalkers:
+        The number of walkers that step around the parameter space used to produce the samples by the sample function. Must be an even integer number larger than ndim.
+        
+        :limit:
+        Integer value less than nsteps to plot the walker steps to. 
+        
+        RETURNS:
+        :fig:
+        The figure object
+        """
     s = samples.reshape(nwalkers, -1, 4)
     s = s[:,:limit, :]
     fig = P.figure(figsize=(8,10))
@@ -155,60 +377,35 @@ def walker_plot(samples, nwalkers, limit):
     ax1.tick_params(axis='x', labelbottom='off')
     ax2.tick_params(axis='x', labelbottom='off')
     ax3.tick_params(axis='x', labelbottom='off')
-#    ax1.set_ylim(0, 13.807108309208775)
-#    ax2.set_ylim(0, 3.0)
-#    ax3.set_ylim(0, 13.807108309208775)
-#    ax4.set_ylim(0, 3.0)
     ax4.set_xlabel(r'step number')
     ax1.set_ylabel(r'$t_{smooth}$')
     ax2.set_ylabel(r'$\tau_{smooth}$')
     ax3.set_ylabel(r'$t_{disc}$')
     ax4.set_ylabel(r'$\tau_{disc}$')
     P.subplots_adjust(hspace=0.1)
-    save_fig = '/Volumes/Data/smethurst/Green-Valley-Project/bayesian/find_t_tau/gv/walkers_steps_gv_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
+    save_fig = '~/walkers_steps_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
     fig.savefig(save_fig)
     return fig
-
-def walker_steps(samples, nwalkers, limit):
-    ur = N.load('/Volumes/Data/smethurst/Green-Valley-Project/bayesian/find_t_tau_old/colour_plot/ur.npy')
-    nuv = N.load('/Volumes/Data/smethurst/Green-Valley-Project/bayesian/find_t_tau_old/colour_plot/nuvu.npy')
-    s = samples.reshape(nwalkers, -1, 4)
-    s = s[:,:limit,:]
-    fig = P.figure(figsize=(9,9))
-    ax1 = P.subplot(221, autoscale_on = False, aspect='auto', xlim=[0,13.8], ylim=[0,3])
-    ax2 = P.subplot(222,  autoscale_on = False, aspect='auto', xlim=[0,13.8], ylim=[0,3])
-    ax3 = P.subplot(223,  autoscale_on = False, aspect='auto', xlim=[0,13.8], ylim=[0,3])
-    ax4 = P.subplot(224,  autoscale_on = False, aspect='auto', xlim=[0,13.8], ylim=[0,3])
-    ax1.imshow(ur, origin='lower', aspect='auto', extent=[0, 13.8, 0, 3])
-    ax2.imshow(ur, origin='lower', aspect='auto', extent=[0, 13.8, 0, 3])
-    ax3.imshow(nuv, origin='lower', aspect='auto', extent=[0, 13.8, 0, 3])
-    ax4.imshow(nuv, origin='lower', aspect='auto', extent=[0, 13.8, 0, 3])
-    for n in range(len(s)):
-        ax1.plot(s[n,:,0], s[n,:,1], 'k', alpha=0.5)
-        ax2.plot(s[n,:,2], s[n,:,3], 'k', alpha=0.5)
-        ax3.plot(s[n,:,0], s[n,:,1], 'k', alpha=0.5)
-        ax4.plot(s[n,:,2], s[n,:,3], 'k', alpha=0.5)
-    ax1.set_xlabel(r'$t_{smooth}$')
-    ax1.set_ylabel(r'$\tau_{smooth}$')
-    ax2.set_xlabel(r'$t_{disc}$')
-    ax2.set_ylabel(r'$\tau_{disc}$')
-    ax3.set_xlabel(r'$t_{smooth}$')
-    ax3.set_ylabel(r'$\tau_{smooth}$')
-    ax4.set_xlabel(r'$t_{disc}$')
-    ax4.set_ylabel(r'$\tau_{disc}$')
-    P.tight_layout()
-    save_fig = '/Volumes/Data/smethurst/Green-Valley-Project/bayesian/find_t_tau/gv/walkers_2d_steps_gv_'+str(nwalkers)+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
-    fig.savefig(save_fig)
-    return fig
-
-def plot_binned_data(axes, binedges, data, *args, **kwargs):
-    #The dataset values are the bin centres
-    x = (binedges[1:] + binedges[:-1]) / 2.0
-    #The weights are the y-values of the input binned data
-    weights = data
-    return axes.hist(x, bins=binedges, weights=weights, *args, **kwargs)
 
 def corner_plot(s, labels, extents, bf):
+    """ Plotting function to visualise the gaussian peaks found by the sampler function. 2D contour plots of tq against tau are plotted along with kernelly smooth histograms for each parameter.
+        
+        :s:
+         Array of shape (#, 2) for either the smooth or disc produced by the emcee EnsembleSampler in the sample function of length determined by the number of walkers which resulted at the specified peak.
+        
+        :labels:
+        List of x and y axes labels i.e. disc or smooth parameters
+        
+        :extents:
+        Range over which to plot the samples, list shape [[xmin, xmax], [ymin, ymax]]
+        
+        :bf:
+        Best fit values for the distribution peaks in both tq and tau found from mapping the samples. List shape [(tq, poserrtq, negerrtq), (tau, poserrtau, negerrtau)]
+        
+        RETURNS:
+        :fig:
+        The figure object
+        """
     x, y = s[:,0], s[:,1]
     fig = P.figure(figsize=(10,10))
     ax2 = P.subplot2grid((3,3), (1,0), colspan=2, rowspan=2)
@@ -221,14 +418,13 @@ def corner_plot(s, labels, extents, bf):
     [j.set_rotation(45) for j in ax2.get_yticklabels()]
     ax2.tick_params(axis='x', labeltop='off')
     ax1 = P.subplot2grid((3,3), (0,0),colspan=2)
-    #n= ax1.hist(x, bins=100, range=(extents[0][0], extents[0][1]), normed=True, histtype='step', color='k')
+    #ax1.hist(x, bins=100, range=(extents[0][0], extents[0][1]), normed=True, histtype='step', color='k')
     den = kde.gaussian_kde(x[N.logical_and(x>=extents[0][0], x<=extents[0][1])])
     pos = N.linspace(extents[0][0], extents[0][1], 750)
     ax1.plot(pos, den(pos), 'k-', linewidth=1)
     ax1.axvline(x=bf[0][0], linewidth=1)
     ax1.axvline(x=bf[0][0]-bf[0][1], c='b', linestyle='--')
     ax1.axvline(x=bf[0][0]+bf[0][2], c='b', linestyle='--')
-    #   ax1.set_ylim(0, 1)
     ax1.set_xlim(extents[0][0], extents[0][1])
     #    ax12 = ax1.twiny()
     #    ax12.set_xlim((extent[0][0], extent[0][1])
@@ -249,21 +445,13 @@ def corner_plot(s, labels, extents, bf):
     ax3.axhline(y=bf[1][0], linewidth=1)
     ax3.axhline(y=bf[1][0]-bf[1][1], c='b', linestyle='--')
     ax3.axhline(y=bf[1][0]+bf[1][2], c='b', linestyle='--')
-    #    ax3.set_xlim(0, 1)
     ax3.set_ylim(extents[1][0], extents[1][1])
     P.subplots_adjust(wspace=0.0)
     P.subplots_adjust(hspace=0.0)
-    #    cbar_ax = fig.add_axes([0.67, 0.64, 0.02, 0.26])
-    #    cb = fig.colorbar(im, cax = cbar_ax, ticks=[0.015, 0.045, 0.075, 0.105, 0.135])
-    #    cb.solids.set_edgecolor('face')
-    #    cb.set_label(r'predicted SFR $[M_{\odot} yr^{-1}]$', labelpad = 20, fontsize=16)
-    #P.tight_layout()
     return fig
 
 
-
-
-#Load the filters in order to calculate fluxes in each bandpass
+""" Load the magnitude bandpass filters using idl save """
 filters = idlsave.read('/Volumes/Data/smethurst/Green-Valley-Project/kevin_idl/ugriz.sav')
 fuvwave= filters.ugriz.fuvwave[0]
 fuvtrans = filters.ugriz.fuvtrans[0]
