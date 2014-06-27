@@ -25,7 +25,7 @@ P.rc('ytick', labelsize='medium')
 P.rc('axes', labelsize='x-large')
 
 """We first define the directory in which we will find the BC03 model, extracted from the original files downloaded from the BC03 website into a usable format. Here we implement a solar metallicity model with a Chabrier IMF."""
-dir ='/Volumes/Data/smethurst/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
+dir ='~/Projects/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
 model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
 data = N.loadtxt(dir+model)
 n=0
