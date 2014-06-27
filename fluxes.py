@@ -4,7 +4,7 @@ from scipy.integrate import simps
 from scipy import interpolate
 import pylab as P
 
-dir ='/Volumes/Data/smethurst/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
+dir ='~/Projects/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
 model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
 data = N.loadtxt(dir+model)
 model_ages = data[0,1:]
