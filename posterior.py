@@ -330,7 +330,7 @@ def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_n
     # burn in run 
     pos, prob, state = sampler.run_mcmc(p0, burnin)
     samples = sampler.chain[:,:,:].reshape((-1,ndim))
-    samples_save = '~/samples_burn_in_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
+    samples_save = '/Users/becky/samples_burn_in_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
     N.save(samples_save, samples)
     walker_plot(samples, nwalkers, burnin)
     sampler.reset()
@@ -338,7 +338,7 @@ def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_n
     # main sampler run
     sampler.run_mcmc(pos, nsteps)
     samples = sampler.chain[:,:,:].reshape((-1,ndim))
-    samples_save = '~/samples_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
+    samples_save = '/Users/becky/samples_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
     N.save(samples_save, samples)
     fig = triangle.corner(samples, labels=[r'$ t_{smooth} $', r'$ \tau_{smooth} $', r'$ t_{disc} $', r'$ \tau_{disc}$'])
     fig.savefig('triangle_t_tau_gv_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf')
@@ -383,7 +383,7 @@ def walker_plot(samples, nwalkers, limit):
     ax3.set_ylabel(r'$t_{disc}$')
     ax4.set_ylabel(r'$\tau_{disc}$')
     P.subplots_adjust(hspace=0.1)
-    save_fig = '~/walkers_steps_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
+    save_fig = '/Users/becky/walkers_steps_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
     fig.savefig(save_fig)
     return fig
 
@@ -452,7 +452,7 @@ def corner_plot(s, labels, extents, bf):
 
 
 """ Load the magnitude bandpass filters using idl save """
-filters = idlsave.read('/Volumes/Data/smethurst/Green-Valley-Project/kevin_idl/ugriz.sav')
+filters = idlsave.read('/Users/becky/Projects/Green-Valley-Project/kevin_idl/ugriz.sav')
 fuvwave= filters.ugriz.fuvwave[0]
 fuvtrans = filters.ugriz.fuvtrans[0]
 nuvwave= filters.ugriz.nuvwave[0]
