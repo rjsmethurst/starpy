@@ -221,7 +221,7 @@ def lnprior(w, theta):
         """
     mu_tqs, mu_taus, mu_tqd, mu_taud, sig_tqs, sig_taus, sig_tqd, sig_taud = w
     ts, taus, td, taud = theta
-    if 0.002 <= ts <= 13.807108309208775 and 0.002 <= taus <= 5.0 and 0.002 <= td < 13.807108309208775 and 0.002 <= taud <= 5.0:
+    if 0.003 <= ts <= 13.807108309208775 and 0.003 <= taus <= 5.0 and 0.003 <= td < 13.807108309208775 and 0.003 <= taud <= 5.0:
         return 0.0
     else:
         return -N.inf
