@@ -83,7 +83,7 @@ def predict_c_one(theta, age):
         :u_r_age:
         Array the same shape as :age: with the u-r colour values at each given age for the specified :theta: values
         """
-    ti = N.arange(0.003, 0.01, 0.003)
+    ti = N.arange(0, 0.01, 0.003)
     t = N.linspace(0,14.0,100)
     t = N.append(ti, t[1:])
     tq, tau = theta

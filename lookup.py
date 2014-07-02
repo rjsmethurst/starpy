@@ -19,7 +19,7 @@ tau = N.linspace(0.003, 4, 100)
 age = N.linspace(10.88861228, 13.67023409, 50)
 
 print 'making product list of inputs...'
-grid = np.array(list(product(age, tau, tq)))
+grid = N.array(list(product(age, tau, tq)))
 
 ur = N.zeros(len(grid))
 nuv = N.zeros(len(grid))
@@ -27,7 +27,7 @@ nuv = N.zeros(len(grid))
 'calculating colours...'
 for n in range(len(grid)):
     if n%10000 == 0:
-        print '% complete: ', float(n)\len(grid)
+        print '% complete: ', float(n)/len(grid)
     nuv[n], ur[n] = predict_c_one([grid[n,2], grid[n,1]], grid[n,0])
 
 'saving...'
