@@ -95,7 +95,7 @@ def predict_c_one(theta, age):
     nuv_u_age = N.interp(age, t, nuv_u)
     u_r_age = N.interp(age, t, u_r)
     return nuv_u_age, u_r_age
-
+    
 
 def get_colours(time, flux, data):
     """" Calculates the colours of a given sfh fluxes across time given the BC03 models from the magnitudes of the SED.
