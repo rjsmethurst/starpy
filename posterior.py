@@ -15,6 +15,7 @@ import triangle
 import time
 from astropy.cosmology import FlatLambdaCDM
 from scipy.stats import kde
+from scipy import interpolate
 
 cosmo = FlatLambdaCDM(H0 = 71.0, Om0 = 0.26)
 
@@ -29,6 +30,11 @@ dir ='/Users/becky/Projects/Green-Valley-Project/bc03/models/Padova1994/chabrier
 model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
 data = N.loadtxt(dir+model)
 n=0
+
+nuv_pred = N.load('/Users/becky/Projects/Green-Valley-Project/bayesian/find_t_tau/colour_plot/nuvu_look_up_age.npy')
+ur_pred = N.load('/Users/becky/Projects/Green-Valley-Project/bayesian/find_t_tau/colour_plot/ur_look_up_age.npy')
+nuv_f = interpolate.interp2d(N.linspace(0.003,13.8,100), N.linspace(0.003,5,100), nuv_pred)
+ur_f = interpolate.interp2d(N.linspace(0.003,13.8,100), N.linspace(0.003,5,100), ur_pred)
 
 # Function which given a tau and a tq calculates the sfr at all times
 def expsfh(tq, tau, time):
@@ -114,6 +120,11 @@ def get_colours(time, flux, data):
     u_r = umag - rmag
     return nuv_u, u_r
 
+def lookup_col_one(theta, age):
+    nuv_u = nuv_f(theta[0], theta[1])
+    u_r = ur_f(theta[0], theta[1])
+    return nuv_u, u_r
+
 
 def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
     """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
@@ -146,7 +157,7 @@ def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
         Array of same shape as :age: containing the likelihood for each galaxy at the given :theta:
         """
     tq, tau = theta
-    pred_nuvu, pred_ur = predict_c_one(theta, age)
+    pred_nuvu, pred_ur = lookup_col_one(theta, age)
 #    print 'theta: ', theta
 #    print 'predicted nuvu: ', pred_nuvu
 #    print 'obserbed nuvu: ', nuvu
@@ -221,7 +232,7 @@ def lnprior(w, theta):
         """
     mu_tqs, mu_taus, mu_tqd, mu_taud, sig_tqs, sig_taus, sig_tqd, sig_taud = w
     ts, taus, td, taud = theta
-    if 0.003 <= ts <= 13.807108309208775 and 0.003 <= taus <= 5.0 and 0.003 <= td < 13.807108309208775 and 0.003 <= taud <= 5.0:
+    if 0.003 <= ts <= 13.807108309208775 and 0.003 <= taus <= 4.0 and 0.003 <= td < 13.807108309208775 and 0.003 <= taud <= 4.0:
         return 0.0
     else:
         return -N.inf
@@ -275,7 +286,6 @@ def lnprob(theta, w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     if not N.isfinite(lp):
         return -N.inf
     return lp + lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps)
-
 
 def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     """ Function to implement the emcee EnsembleSampler function for the sample of galaxies input. Burn in is run and calcualted fir the length specified before the sampler is reset and then run for the length of steps specified. 
