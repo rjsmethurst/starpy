@@ -1,4 +1,4 @@
-from posterior import *
+10from posterior import *
 from astropy.cosmology import FlatLambdaCDM
 from itertools import product
 
