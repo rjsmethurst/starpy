@@ -19,7 +19,7 @@ from scipy import interpolate
 
 cosmo = FlatLambdaCDM(H0 = 71.0, Om0 = 0.26)
 
-font = {'family':'serif', 'size':20}
+font = {'family':'serif', 'size':25}
 P.rc('font', **font)
 P.rc('xtick', labelsize='medium')
 P.rc('ytick', labelsize='medium')
@@ -420,7 +420,7 @@ def corner_plot(s, labels, extents, bf):
         The figure object
         """
     x, y = s[:,0], s[:,1]
-    fig = P.figure(figsize=(10,10))
+    fig = P.figure(figsize=(6.25,6.25))
     ax2 = P.subplot2grid((3,3), (1,0), colspan=2, rowspan=2)
     ax2.set_xlabel(labels[0])
     ax2.set_ylabel(labels[1])
@@ -436,8 +436,8 @@ def corner_plot(s, labels, extents, bf):
     pos = N.linspace(extents[0][0], extents[0][1], 750)
     ax1.plot(pos, den(pos), 'k-', linewidth=1)
     ax1.axvline(x=bf[0][0], linewidth=1)
-    ax1.axvline(x=bf[0][0]-bf[0][1], c='b', linestyle='--')
-    ax1.axvline(x=bf[0][0]+bf[0][2], c='b', linestyle='--')
+    ax1.axvline(x=bf[0][0]+bf[0][1], c='b', linestyle='--')
+    ax1.axvline(x=bf[0][0]-bf[0][2], c='b', linestyle='--')
     ax1.set_xlim(extents[0][0], extents[0][1])
     #    ax12 = ax1.twiny()
     #    ax12.set_xlim((extent[0][0], extent[0][1])
@@ -456,11 +456,12 @@ def corner_plot(s, labels, extents, bf):
     pos = N.linspace(extents[1][0], extents[1][1], 750)
     ax3.plot(den(pos), pos, 'k-', linewidth=1)
     ax3.axhline(y=bf[1][0], linewidth=1)
-    ax3.axhline(y=bf[1][0]-bf[1][1], c='b', linestyle='--')
-    ax3.axhline(y=bf[1][0]+bf[1][2], c='b', linestyle='--')
+    ax3.axhline(y=bf[1][0]+bf[1][1], c='b', linestyle='--')
+    ax3.axhline(y=bf[1][0]-bf[1][2], c='b', linestyle='--')
     ax3.set_ylim(extents[1][0], extents[1][1])
     P.subplots_adjust(wspace=0.0)
     P.subplots_adjust(hspace=0.0)
+    P.tight_layout()
     return fig
 
 
