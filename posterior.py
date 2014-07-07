@@ -15,7 +15,8 @@ import triangle
 import time
 from astropy.cosmology import FlatLambdaCDM
 from scipy.stats import kde
-from scipy import interpolate
+from scipy.interpolate import LinearNDInterpolator as i
+from itertools import product
 
 cosmo = FlatLambdaCDM(H0 = 71.0, Om0 = 0.26)
 
@@ -31,10 +32,18 @@ model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
 data = N.loadtxt(dir+model)
 n=0
 
-nuv_pred = N.load('/Users/becky/Projects/Green-Valley-Project/bayesian/find_t_tau/colour_plot/nuvu_look_up_age.npy')
-ur_pred = N.load('/Users/becky/Projects/Green-Valley-Project/bayesian/find_t_tau/colour_plot/ur_look_up_age.npy')
-nuv_f = interpolate.interp2d(N.linspace(0.003,13.8,100), N.linspace(0.003,5,100), nuv_pred)
-ur_f = interpolate.interp2d(N.linspace(0.003,13.8,100), N.linspace(0.003,5,100), ur_pred)
+print 'gridding...'
+tq = N.linspace(0.003, 13.8, 100)
+tau = N.linspace(0.003, 4, 100)
+age = N.linspace(10.88861228, 13.67023409, 50)
+grid = N.array(list(product(age, tau, tq)))
+print 'loading...'
+nuv_pred = N.load('nuv_look_up.npy')
+ur_pred = N.load('ur_look_up.npy')
+print 'functioning first...'
+nuv_f = i (grid, nuv_pred)
+print 'functioning second...'
+ur_f = i(grid, ur_pred)
 
 # Function which given a tau and a tq calculates the sfr at all times
 def expsfh(tq, tau, time):
@@ -121,8 +130,8 @@ def get_colours(time, flux, data):
     return nuv_u, u_r
 
 def lookup_col_one(theta, age):
-    nuv_u = nuv_f(theta[0], theta[1])
-    u_r = ur_f(theta[0], theta[1])
+    nuv_u = nuv_f(age, theta[1], theta[0])
+    u_r = ur_f(age, theta[1], theta[0])
     return nuv_u, u_r
 
 
@@ -459,6 +468,7 @@ def corner_plot(s, labels, extents, bf):
     ax3.axhline(y=bf[1][0]-bf[1][1], c='b', linestyle='--')
     ax3.axhline(y=bf[1][0]+bf[1][2], c='b', linestyle='--')
     ax3.set_ylim(extents[1][0], extents[1][1])
+    P.tight_layout()
     P.subplots_adjust(wspace=0.0)
     P.subplots_adjust(hspace=0.0)
     return fig
