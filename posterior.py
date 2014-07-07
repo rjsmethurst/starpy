@@ -13,9 +13,11 @@ import pyfits as F
 import emcee
 import triangle
 import time
+import matplotlib.image as mpimg
 from astropy.cosmology import FlatLambdaCDM
 from scipy.stats import kde
-from scipy.interpolate import LinearNDInterpolator as i
+from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import interp2d
 from itertools import product
 
 cosmo = FlatLambdaCDM(H0 = 71.0, Om0 = 0.26)
@@ -35,15 +37,12 @@ n=0
 print 'gridding...'
 tq = N.linspace(0.003, 13.8, 100)
 tau = N.linspace(0.003, 4, 100)
-age = N.linspace(10.88861228, 13.67023409, 50)
-grid = N.array(list(product(age, tau, tq)))
+ages = N.linspace(10.88861228, 13.67023409, 50)
+grid = N.array(list(product(ages, tau, tq)))
 print 'loading...'
 nuv_pred = N.load('nuv_look_up.npy')
 ur_pred = N.load('ur_look_up.npy')
-print 'functioning first...'
-nuv_f = i (grid, nuv_pred)
-print 'functioning second...'
-ur_f = i(grid, ur_pred)
+lu = N.append(nuv_pred.reshape(-1,1), ur_pred.reshape(-1,1), axis=1)
 
 # Function which given a tau and a tq calculates the sfr at all times
 def expsfh(tq, tau, time):
@@ -63,6 +62,8 @@ def expsfh(tq, tau, time):
         Array of the same dimensions of time containing the sfr at each timestep.
         """
     ssfr = 2.5*(((10**10.27)/1E10)**(-0.1))*(time/3.5)**(-2.2)
+    c = time.searchsorted(3.0)
+    ssfr[:c] = N.interp(3.0, time, ssfr)
     c_sfr = N.interp(tq, time, ssfr)*(1E10)/(1E9)
     # definition is for 10^10 M_solar galaxies and per gyr - convert to M_solar/year
     a = time.searchsorted(tq)
@@ -130,9 +131,9 @@ def get_colours(time, flux, data):
     return nuv_u, u_r
 
 def lookup_col_one(theta, age):
-    nuv_u = nuv_f(age, theta[1], theta[0])
-    u_r = ur_f(age, theta[1], theta[0])
-    return nuv_u, u_r
+    ur_pred = u(theta[0], theta[1])
+    nuv_pred = v(theta[0], theta[1])
+    return nuv_pred, ur_pred
 
 
 def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
@@ -347,10 +348,30 @@ def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_n
         """
     if len(age) != len(ur):
         raise SystemExit('Number of ages does not coincide with number of galaxies...')
+    global u
+    global v
+    a = N.searchsorted(ages, age)
+    b = N.array([a-1, a])
+    print 'compressing down...'
+    g = grid[N.where(N.logical_or(grid[:,0]==ages[b[0]], grid[:,0]==ages[b[1]]))]
+    v = lu[N.where(N.logical_or(grid[:,0]==ages[b[0]], grid[:,0]==ages[b[1]]))]
+    print 'interpolating function...'
+    f = LinearNDInterpolator(g, v, fill_value=(-N.inf))
+    print 'working for age...'
+    look = f(age, g[:10000, 1], g[:10000, 2])
+    print '2D for nuv..'
+    lunuv = look[:,0].reshape(100,100)
+    v = interp2d(tq, tau, lunuv)
+    print '2D for ur...'
+    luur = look[:,1].reshape(100,100)
+    u = interp2d(tq, tau, luur)
+    print 'go go go ...'
     p0 = [start + 1e-4*N.random.randn(ndim) for i in range(nwalkers)]
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2, args=(w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps))
     # burn in run 
     pos, prob, state = sampler.run_mcmc(p0, burnin)
+    lnp = sampler.flatlnprobability
+    N.save('lnprob_burnin.npy', lnp)
     samples = sampler.chain[:,:,:].reshape((-1,ndim))
     samples_save = '/Users/becky/samples_burn_in_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
     N.save(samples_save, samples)
@@ -359,6 +380,8 @@ def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_n
     print 'RESET', pos
     # main sampler run
     sampler.run_mcmc(pos, nsteps)
+    lnpr = sampler.flatlnprobability
+    N.save('lnprob_run.npy', lnpr)
     samples = sampler.chain[:,:,:].reshape((-1,ndim))
     samples_save = '/Users/becky/samples_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
     N.save(samples_save, samples)
@@ -468,10 +491,14 @@ def corner_plot(s, labels, extents, bf):
     ax3.axhline(y=bf[1][0]+bf[1][1], c='b', linestyle='--')
     ax3.axhline(y=bf[1][0]-bf[1][2], c='b', linestyle='--')
     ax3.set_ylim(extents[1][0], extents[1][1])
+    ax4 = P.subplot2grid((3,3), (0,2), rowspan=1, colspan=1)
+    img = mpimg.imread('/Users/becky/Projects/fyreport/587741708884181064.jpeg')
+    ax4.imshow(img)
+    ax4.tick_params(axis='x', labelbottom='off', labeltop='off')
+    ax4.tick_params(axis='y', labelleft='off', labelright='off')
     P.tight_layout()
     P.subplots_adjust(wspace=0.0)
     P.subplots_adjust(hspace=0.0)
-    P.tight_layout()
     return fig
 
 
