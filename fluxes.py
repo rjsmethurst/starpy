@@ -21,13 +21,7 @@ f = interpolate.interp2d(model_ages, model_lambda, model_fluxes)
 interp_fluxes_sim = f(time_steps, model_lambda)
 
 def assign_total_flux(model_ages, model_lambda, model_fluxes, time_steps, sim_SFR):
-#    ##First mask the ages of the very young stars hidden in birth clouds
-#    mask = model_ages[model_ages<4E6]
-#    model_fluxes[:,0:len(mask)] = 0.0
-#    ## Calculate the fluxes at the ages specified by the time steps rather than in the models using numpy/scipy array manipulations rather than a for loop
-#    f = interpolate.interp2d(model_ages, model_lambda, model_fluxes)
-#    interp_fluxes_sim = f(time_steps, model_lambda)
-    # Produce the array to keep track of the ages of the fractional SFR at each time step
+## Produce the array to keep track of the ages of the fractional SFR at each time step
     frac_sfr = sim_SFR/sim_SFR[0]
     fraction_array = S.linalg.toeplitz(frac_sfr, N.zeros_like(frac_sfr)).T
     # Produce the array to keep track of the ages of the mass fraction of stars formed at each time step
