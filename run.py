@@ -44,7 +44,7 @@ gvf = colours[colours[:,8]==1]
 colours = colours[colours[:,0] < 6.0]
 colours = colours[colours[:,1] > -3.0]
 
-one = colours[colours[:,12]==1853288205076424704]
+one = colours[colours[:,12]==1470500645147535360]
 
 print len(one)
 print one

@@ -40,8 +40,8 @@ tau = N.linspace(0.003, 4, 100)
 ages = N.linspace(10.88861228, 13.67023409, 50)
 grid = N.array(list(product(ages, tau, tq)))
 print 'loading...'
-nuv_pred = N.load('nuv_look_up.npy')
-ur_pred = N.load('ur_look_up.npy')
+nuv_pred = N.load('nuv_look_up_ssfr.npy')
+ur_pred = N.load('ur_look_up_ssfr.npy')
 lu = N.append(nuv_pred.reshape(-1,1), ur_pred.reshape(-1,1), axis=1)
 
 # Function which given a tau and a tq calculates the sfr at all times
