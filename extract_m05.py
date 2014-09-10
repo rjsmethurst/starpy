@@ -34,7 +34,8 @@ def extract_model_data(modelfile):
         extract[0,1:] = N.unique(p[:,0])
         n=0
         for j in range(num_ages):
-            extract[1:,j+1] = p[n:n+num_wave, -1]            
+            extract[1:,j+1] = p[n:n+num_wave, -1]
+            n+=num_wave
 #This code saves the sed
         if 'kr' in modelfile:
             new_dir = dir+'/Sed_Mar05_SSP_Kroupa/extracted/'
