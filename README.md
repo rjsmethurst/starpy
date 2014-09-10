@@ -1,7 +1,7 @@
 starfpy
 =======
 
-A python code to determine the quenched star formation history parameters of galaxy populations using the MCMC algorithm emcee (http://dan.iel.fm/emcee/current/)
+A python code to determine the quenched star formation history parameters of galaxy populations using the MCMC algorithm emcee (http://dan.iel.fm/emcee/current/). Please ensure this module is installed and can be imported into your Python installation.
 
 The sample function implements the emcee EnsembleSampler function for the population of galaxies input. Burn-in is run and calculated for the length specified before the sampler is reset and then run for the length of steps specified. 
         
@@ -48,7 +48,7 @@ The sample function implements the emcee EnsembleSampler function for the popula
         :samples_save:
         Location at which the :samples: array was saved to. 
         :fig:
-        Samples plotted as contours and integrated over to a each one dimensional histogram with median values and 1sigma         values either side. 
+        Samples plotted as contours and integrated over to a each one dimensional histogram with median values and 1sigma values either side. The triangle.py module is necessary to produce these plots and is provided in the starfpy            repository. It can also be downloaded here: https://github.com/dfm/triangle.py or with pip install triangle_plot         at the command line.
         
         
         
@@ -57,3 +57,5 @@ Data inputs occur with the starfpy.py file, all necessary functions are in the p
 You can generate a look up table in two colours with lookup.py or you can use the full functions that take a give SFH and calculate the SED at each time step defined with the fluxes.py file. 
 
 You must also extract the necessary SPS models into ASCII files with the 'extract_bc03.py' file.  
+
+u-r and NUV-u look up tables have already been generated for 50 observed ages, 100 tau and 100 t values for an exponential decline SFH model. These can be used for a quick starfpy run which is less customised. 
