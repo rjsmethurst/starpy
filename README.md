@@ -1,7 +1,7 @@
 starfpy
 =======
 
-A fantastic python code to determine the quenched star formation history parameters of galaxy populations using the MCMC algorithm emcee (http://dan.iel.fm/emcee/current/)
+A python code to determine the quenched star formation history parameters of galaxy populations using the MCMC algorithm emcee (http://dan.iel.fm/emcee/current/)
 
 The sample function implements the emcee EnsembleSampler function for the population of galaxies input. Burn-in is run and calculated for the length specified before the sampler is reset and then run for the length of steps specified. 
         
