@@ -5,7 +5,7 @@ A fantastic python code to determine the quenched star formation history paramet
 
 The sample function implements the emcee EnsembleSampler function for the population of galaxies input. Burn-in is run and calculated for the length specified before the sampler is reset and then run for the length of steps specified. 
         
-INPUTS:
+        :INPUTS:
         :ndim:
         The number of parameters in the model that emcee must find. In this case it always 2 with tq, tau
         
