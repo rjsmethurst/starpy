@@ -102,7 +102,7 @@ def extract_model_data(modelfile):
         os.makedirs(new_dir)
     else:
         pass
-    N.savetxt(dir+'extracted_'+modelfile,seds,fmt='%1.8E')
+    N.savetxt(new_dir+'extracted_'+modelfile[-33:],seds,fmt='%1.8E')
 
 ### Extract all the BC03 files: all combinations of chabrier & salpeter IMFs, high res & low res and all metallicities
 metal = [22,32,42,52,62,72]
