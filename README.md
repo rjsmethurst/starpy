@@ -7,7 +7,7 @@ The sample function implements the emcee EnsembleSampler function for the popula
         
 INPUTS:
         :ndim:
-        The number of parameters in the model that emcee must find. In this case it always 4 with tqs, taus, tqd, taud.
+        The number of parameters in the model that emcee must find. In this case it always 2 with tq, tau
         
         :nwalkers:
         The number of walkers that step around the parameter space. Must be an even integer number larger than ndim. 
@@ -19,10 +19,7 @@ INPUTS:
         The number of steps to take in the inital burn-in run of the MCMC sampler. Integer. 
         
         :start:
-        The positions in the tq and tau parameter space to start for both disc and smooth parameters. An array of shape (1,4).
-        
-        :w:
-        Prior assumptions on the distribution of theta for disc and smooth galaxies. Assumed normal distribution for all parameters.
+        The positions in the tq and tau parameter space to start for both disc and smooth parameters. An array of shape (1,2).
         
         :ur:
         Observed u-r colour of a galaxy; k-corrected. An array of shape (N,1) or (N,).
@@ -47,6 +44,12 @@ INPUTS:
         
 RETURNS:
         :samples:
-        Array of shape (nsteps*nwalkers, 4) containing the positions of the walkers at all steps for all 4 parameters.
+        Array of shape (nsteps*nwalkers, 2) containing the positions of the walkers at all steps for all 4 parameters.
         :samples_save:
         Location at which the :samples: array was saved to. 
+        :fig:
+        Samples plotted as contours and integrated over to a each one dimensional histogram with median values and 1sigma         values either side. 
+        
+        
+        
+Data inputs occur with the starfpy.py file, all necessary functions are in the posterior.py file. You can generate a look up table in two colours with lookup.py or you can use the full functions that take a give SFH and calculate the SED at each time step defined with the fluxes.py file. You must also extract the necessary SPS models into .ised_ASCII files with the extract.py file.  
