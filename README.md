@@ -48,7 +48,7 @@ The sample function implements the emcee EnsembleSampler function for the popula
         :samples_save:
         Location at which the :samples: array was saved to. 
         :fig:
-        Samples plotted as contours and integrated over to a each one dimensional histogram with median values and 1sigma         values either side. The triangle.py module is necessary to produce these plots and is provided in the starfpy            repository. It can also be downloaded here: https://github.com/dfm/triangle.py or with pip install triangle_plot         at the command line.
+        Samples plotted as contours and integrated over to a each one dimensional histogram with median values and 1sigma values either side. The triangle.py module is necessary to produce these plots and is provided in the starfpy            repository. It can also be downloaded here: https://github.com/dfm/triangle.py or with pip install triangle_plot         at the command line.
         
         
         
