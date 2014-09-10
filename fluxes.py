@@ -4,9 +4,12 @@ from scipy.integrate import simps
 from scipy import interpolate
 import pylab as P
 
-dir ='/Users/becky/Projects/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
-model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
-data = N.loadtxt(dir+model)
+""" Functions to calculate the colours at every time step in a defined SFH using a specified extracted SPS model.
+    """
+
+#dir ='/home/smethurst/Projects/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
+dir = str(raw_input('Which extracted SPS (.ised_ASCII) model should I use? : '))
+data = N.loadtxt(dir)
 model_ages = data[0,1:]
 model_lambda = data[1:,0]
 model_fluxes = data[1:,1:]

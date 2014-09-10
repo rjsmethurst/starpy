@@ -13,6 +13,7 @@ import pyfits as F
 import emcee
 import triangle
 import time
+import os
 import matplotlib.image as mpimg
 from astropy.cosmology import FlatLambdaCDM
 from scipy.stats import kde
@@ -29,7 +30,7 @@ P.rc('ytick', labelsize='medium')
 P.rc('axes', labelsize='x-large')
 
 """We first define the directory in which we will find the BC03 model, extracted from the original files downloaded from the BC03 website into a usable format. Here we implement a solar metallicity model with a Chabrier IMF."""
-dir ='/Users/becky/Projects/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
+dir ='/Volumes/Data/smethurst/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
 model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
 data = N.loadtxt(dir+model)
 n=0
@@ -44,7 +45,6 @@ nuv_pred = N.load('nuv_look_up_ssfr.npy')
 ur_pred = N.load('ur_look_up_ssfr.npy')
 lu = N.append(nuv_pred.reshape(-1,1), ur_pred.reshape(-1,1), axis=1)
 
-# Function which given a tau and a tq calculates the sfr at all times
 def expsfh(tq, tau, time):
     """ This function when given a single combination of [tq, tau] values will calcualte the SFR at all times. First calculate the sSFR at all times as defined by Peng et al. (2010) - then the SFR at the specified tq of quenching and set the SFR as constant at this value before this time. Beyond this time the SFR is an exponentially declining function with timescale tau. 
         
@@ -65,7 +65,7 @@ def expsfh(tq, tau, time):
     c = time.searchsorted(3.0)
     ssfr[:c] = N.interp(3.0, time, ssfr)
     c_sfr = N.interp(tq, time, ssfr)*(1E10)/(1E9)
-    # definition is for 10^10 M_solar galaxies and per gyr - convert to M_solar/year
+    ### definition is for 10^10 M_solar galaxies and per gyr - convert to M_solar/year ###
     a = time.searchsorted(tq)
     sfr = N.ones(len(time))*c_sfr
     sfr[a:] = c_sfr*N.exp(-(time[a:]-tq)/tau)
@@ -98,9 +98,9 @@ def predict_c_one(theta, age):
     t = N.append(ti, t[1:])
     tq, tau = theta
     sfr = expsfh(tq, tau, t)
-    # Work out total flux at each time given the sfh model of tau and tq (calls fluxes function)
+    ### Work out total flux at each time given the sfh model of tau and tq (calls fluxes function) ###
     total_flux = fluxes.assign_total_flux(data[0,1:], data[1:,0], data[1:,1:], t*1E9, sfr)
-    # Calculate fluxes from the flux at all times then interpolate to get one colour for the age you are observing the galaxy at - if many galaxies are being observed, this also works with an array of ages to give back an array of colours
+    ### Calculate fluxes from the flux at all times then interpolate to get one colour for the age you are observing the galaxy at - if many galaxies are being observed, this also works with an array of ages to give back an array of colours ###
     nuv_u, u_r = get_colours(t*1E9, total_flux, data)
     nuv_u_age = N.interp(age, t, nuv_u)
     u_r_age = N.interp(age, t, u_r)
@@ -136,7 +136,7 @@ def lookup_col_one(theta, age):
     return nuv_pred, ur_pred
 
 
-def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
+def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
         
         :theta:
@@ -168,13 +168,6 @@ def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
         """
     tq, tau = theta
     pred_nuvu, pred_ur = lookup_col_one(theta, age)
-#    print 'theta: ', theta
-#    print 'predicted nuvu: ', pred_nuvu
-#    print 'obserbed nuvu: ', nuvu
-#    print 'chi sq nuvu: ', -0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
-#    print 'predicted ur: ', pred_ur
-#    print 'observed ur: ', ur
-#    print 'chi sq ur: ', -0.5*((ur-pred_ur)**2/sigma_ur**2)
     return -0.5*N.log(2*N.pi*sigma_ur**2)-0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*N.log10(2*N.pi*sigma_nuvu**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
 
 
@@ -222,11 +215,8 @@ def lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     return N.sum(N.logaddexp(D, S))
 
 # Prior likelihood on theta values given the inital w values assumed for the mean and stdev
-def lnprior(w, theta):
+def lnprior(theta):
     """ Function to calcualted the prior likelihood on theta values given the inital w values assumed for the mean and standard deviation of the tq and tau parameters. Defined ranges are specified - outside these ranges the function returns -N.inf and does not calculate the posterior probability. 
-        
-        :w:
-        Prior assumptions on the distribution of theta for disc and smooth galaxies. Assumed normal distribution for all parameters.
         
         :theta: 
         An array of size (1,4) containing the values [tq, tau] for both smooth and disc galaxies in Gyr.
@@ -240,15 +230,14 @@ def lnprior(w, theta):
         RETURNS:
         Value of the prior at the specified :theta: value.
         """
-    mu_tqs, mu_taus, mu_tqd, mu_taud, sig_tqs, sig_taus, sig_tqd, sig_taud = w
-    ts, taus, td, taud = theta
-    if 0.003 <= ts <= 13.807108309208775 and 0.003 <= taus <= 4.0 and 0.003 <= td < 13.807108309208775 and 0.003 <= taud <= 4.0:
+    tq, tau = theta
+    if 0.003 <= tq <= 13.807108309208775 and 0.003 <= tau <= 4.0:
         return 0.0
     else:
         return -N.inf
 
 # Overall likelihood function combining prior and model
-def lnprob(theta, w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
+def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     """Overall posterior function combiningin the prior and calculating the likelihood. Also prints out the progress through the code with the use of n. 
         
         :theta:
@@ -259,9 +248,6 @@ def lnprob(theta, w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
         
         :tau:
         The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5. Can be either for smooth or disc galaxies.
-        
-        :w:
-        Prior assumptions on the distribution of theta for disc and smooth galaxies. Assumed normal distribution for all parameters.
         
         :ur:
         Observed u-r colour of a galaxy; k-corrected. An array of shape (N,1) or (N,).
@@ -292,16 +278,16 @@ def lnprob(theta, w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     n+=1
     if n %100 == 0:
         print 'step number', n/100
-    lp = lnprior(w, theta)
+    lp = lnprior(theta)
     if not N.isfinite(lp):
         return -N.inf
-    return lp + lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps)
+    return lp + lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps)
 
-def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
+def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps, id):
     """ Function to implement the emcee EnsembleSampler function for the sample of galaxies input. Burn in is run and calcualted fir the length specified before the sampler is reset and then run for the length of steps specified. 
         
         :ndim:
-        The number of parameters in the model that emcee must find. In this case it always 4 with tqs, taus, tqd, taud.
+        The number of parameters in the model that emcee must find. In this case it always 2 with tq, tau.
         
         :nwalkers:
         The number of walkers that step around the parameter space. Must be an even integer number larger than ndim. 
@@ -315,8 +301,6 @@ def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_n
         :start:
         The positions in the tq and tau parameter space to start for both disc and smooth parameters. An array of shape (1,4).
         
-        :w:
-        Prior assumptions on the distribution of theta for disc and smooth galaxies. Assumed normal distribution for all parameters.
         
         :ur:
         Observed u-r colour of a galaxy; k-corrected. An array of shape (N,1) or (N,).
@@ -339,6 +323,9 @@ def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_n
         :ps:
         Galaxy Zoo smooth morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
         
+        :id:
+        ID number to specify which galaxy this run is for.
+        
         RETURNS:
         :samples:
         Array of shape (nsteps*nwalkers, 4) containing the positions of the walkers at all steps for all 4 parameters.
@@ -346,52 +333,46 @@ def sample(ndim, nwalkers, nsteps, burnin, start, w, ur, sigma_ur, nuvu, sigma_n
         Location at which the :samples: array was saved to. 
         
         """
-    if len(age) != len(ur):
-        raise SystemExit('Number of ages does not coincide with number of galaxies...')
+#    if len(age) != len(ur):
+#        raise SystemExit('Number of ages does not coincide with number of galaxies...')
     global u
     global v
     a = N.searchsorted(ages, age)
     b = N.array([a-1, a])
-    print 'compressing down...'
+    print 'interpolating function, bear with...'
     g = grid[N.where(N.logical_or(grid[:,0]==ages[b[0]], grid[:,0]==ages[b[1]]))]
-    v = lu[N.where(N.logical_or(grid[:,0]==ages[b[0]], grid[:,0]==ages[b[1]]))]
-    print 'interpolating function...'
-    f = LinearNDInterpolator(g, v, fill_value=(-N.inf))
-    print 'working for age...'
-    look = f(age, g[:10000, 1], g[:10000, 2])
-    print '2D for nuv..'
+    values = lu[N.where(N.logical_or(grid[:,0]==ages[b[0]], grid[:,0]==ages[b[1]]))]
+    f = LinearNDInterpolator(g, values, fill_value=(-N.inf))
+    look = f(age, grid[:10000, 1], grid[:10000, 2])
     lunuv = look[:,0].reshape(100,100)
     v = interp2d(tq, tau, lunuv)
-    print '2D for ur...'
     luur = look[:,1].reshape(100,100)
     u = interp2d(tq, tau, luur)
-    print 'go go go ...'
+    print 'emcee running...'
     p0 = [start + 1e-4*N.random.randn(ndim) for i in range(nwalkers)]
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2, args=(w, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps))
-    # burn in run 
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2, args=(ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps))
+    """ Burn in run here..."""
     pos, prob, state = sampler.run_mcmc(p0, burnin)
     lnp = sampler.flatlnprobability
-    N.save('lnprob_burnin.npy', lnp)
+    N.save('lnprob_burnin_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy', lnp)
     samples = sampler.chain[:,:,:].reshape((-1,ndim))
-    samples_save = '/Users/becky/samples_burn_in_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
+    samples_save = 'samples_burn_in_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
     N.save(samples_save, samples)
-    walker_plot(samples, nwalkers, burnin)
     sampler.reset()
-    print 'RESET', pos
-    # main sampler run
+    print 'Burn in complete...'
+    """ Main sampler run here..."""
     sampler.run_mcmc(pos, nsteps)
     lnpr = sampler.flatlnprobability
-    N.save('lnprob_run.npy', lnpr)
+    N.save('lnprob_run_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy', lnpr)
     samples = sampler.chain[:,:,:].reshape((-1,ndim))
-    samples_save = '/Users/becky/samples_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
+    samples_save = 'samples_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.npy'
     N.save(samples_save, samples)
-    fig = triangle.corner(samples, labels=[r'$ t_{smooth} $', r'$ \tau_{smooth} $', r'$ t_{disc} $', r'$ \tau_{disc}$'])
-    fig.savefig('triangle_t_tau_gv_'+str(len(samples))+'_'+str(len(age))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf')
+    print 'Main emcee run completed.'
     return samples, samples_save
 
 
 #Define function to plot the walker positions as a function of the step
-def walker_plot(samples, nwalkers, limit):
+def walker_plot(samples, nwalkers, limit, id):
     """ Plotting function to visualise the steps of the walkers in each parameter dimension for smooth and disc theta values. 
         
         :samples:
@@ -403,36 +384,31 @@ def walker_plot(samples, nwalkers, limit):
         :limit:
         Integer value less than nsteps to plot the walker steps to. 
         
+        :id:
+        ID number to specify which galaxy this plot is for.
+        
         RETURNS:
         :fig:
         The figure object
         """
-    s = samples.reshape(nwalkers, -1, 4)
+    s = samples.reshape(nwalkers, -1, 2)
     s = s[:,:limit, :]
-    fig = P.figure(figsize=(8,10))
-    ax1 = P.subplot(4,1,1)
-    ax2 = P.subplot(4,1,2)
-    ax3 = P.subplot(4,1,3)
-    ax4 = P.subplot(4,1,4)
+    fig = P.figure(figsize=(8,5))
+    ax1 = P.subplot(2,1,1)
+    ax2 = P.subplot(2,1,2)
     for n in range(len(s)):
         ax1.plot(s[n,:,0], 'k')
         ax2.plot(s[n,:,1], 'k')
-        ax3.plot(s[n,:,2], 'k')
-        ax4.plot(s[n,:,3], 'k')
     ax1.tick_params(axis='x', labelbottom='off')
-    ax2.tick_params(axis='x', labelbottom='off')
-    ax3.tick_params(axis='x', labelbottom='off')
-    ax4.set_xlabel(r'step number')
-    ax1.set_ylabel(r'$t_{smooth}$')
-    ax2.set_ylabel(r'$\tau_{smooth}$')
-    ax3.set_ylabel(r'$t_{disc}$')
-    ax4.set_ylabel(r'$\tau_{disc}$')
+    ax2.set_xlabel(r'step number')
+    ax1.set_ylabel(r'$t_{quench}$')
+    ax2.set_ylabel(r'$\tau$')
     P.subplots_adjust(hspace=0.1)
-    save_fig = '/Users/becky/walkers_steps_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
+    save_fig = 'walkers_steps_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
     fig.savefig(save_fig)
     return fig
 
-def corner_plot(s, labels, extents, bf):
+def corner_plot(s, labels, extents, bf, id):
     """ Plotting function to visualise the gaussian peaks found by the sampler function. 2D contour plots of tq against tau are plotted along with kernelly smooth histograms for each parameter.
         
         :s:
@@ -446,6 +422,9 @@ def corner_plot(s, labels, extents, bf):
         
         :bf:
         Best fit values for the distribution peaks in both tq and tau found from mapping the samples. List shape [(tq, poserrtq, negerrtq), (tau, poserrtau, negerrtau)]
+        
+        :id:
+        ID number to specify which galaxy this plot is for. 
         
         RETURNS:
         :fig:
@@ -463,7 +442,6 @@ def corner_plot(s, labels, extents, bf):
     [j.set_rotation(45) for j in ax2.get_yticklabels()]
     ax2.tick_params(axis='x', labeltop='off')
     ax1 = P.subplot2grid((3,3), (0,0),colspan=2)
-    #ax1.hist(x, bins=100, range=(extents[0][0], extents[0][1]), normed=True, histtype='step', color='k')
     den = kde.gaussian_kde(x[N.logical_and(x>=extents[0][0], x<=extents[0][1])])
     pos = N.linspace(extents[0][0], extents[0][1], 750)
     ax1.plot(pos, den(pos), 'k-', linewidth=1)
@@ -471,19 +449,18 @@ def corner_plot(s, labels, extents, bf):
     ax1.axvline(x=bf[0][0]+bf[0][1], c='b', linestyle='--')
     ax1.axvline(x=bf[0][0]-bf[0][2], c='b', linestyle='--')
     ax1.set_xlim(extents[0][0], extents[0][1])
-    #    ax12 = ax1.twiny()
-    #    ax12.set_xlim((extent[0][0], extent[0][1])
-    #ax12.set_xticks(N.array([1.87, 3.40, 6.03, 8.77, 10.9, 12.5]))
-    #ax12.set_xticklabels(N.array([3.5, 2.0 , 1.0, 0.5, 0.25, 0.1]))
-    #    [l.set_rotation(45) for l in ax12.get_xticklabels()]
-    #    ax12.tick_params(axis='x', labelbottom='off')
-    #    ax12.set_xlabel(r'$z$')
+    ax12 = ax1.twiny()
+    ax12.set_xlim((extent[0][0], extent[0][1])
+    ax12.set_xticks(N.array([1.87, 3.40, 6.03, 8.77, 10.9, 12.5]))
+    ax12.set_xticklabels(N.array([3.5, 2.0 , 1.0, 0.5, 0.25, 0.1]))
+    [l.set_rotation(45) for l in ax12.get_xticklabels()]
+    ax12.tick_params(axis='x', labelbottom='off')
+    ax12.set_xlabel(r'$z$')
     ax1.tick_params(axis='x', labelbottom='off', labeltop='off')
     ax1.tick_params(axis='y', labelleft='off')
     ax3 = P.subplot2grid((3,3), (1,2), rowspan=2)
     ax3.tick_params(axis='x', labelbottom='off')
     ax3.tick_params(axis='y', labelleft='off')
-    #ax3.hist(y, bins=100, range=(extents[1][0], extents[1][1]), normed=True, histtype='step',color='k', orientation ='horizontal')
     den = kde.gaussian_kde(y[N.logical_and(y>=extents[1][0], y<=extents[1][1])])
     pos = N.linspace(extents[1][0], extents[1][1], 750)
     ax3.plot(den(pos), pos, 'k-', linewidth=1)
@@ -491,19 +468,22 @@ def corner_plot(s, labels, extents, bf):
     ax3.axhline(y=bf[1][0]+bf[1][1], c='b', linestyle='--')
     ax3.axhline(y=bf[1][0]-bf[1][2], c='b', linestyle='--')
     ax3.set_ylim(extents[1][0], extents[1][1])
-    ax4 = P.subplot2grid((3,3), (0,2), rowspan=1, colspan=1)
-    img = mpimg.imread('/Users/becky/Projects/fyreport/587741708884181064.jpeg')
-    ax4.imshow(img)
-    ax4.tick_params(axis='x', labelbottom='off', labeltop='off')
-    ax4.tick_params(axis='y', labelleft='off', labelright='off')
+    if os.path.exists(str(int(id))+'.jpeg') == True:
+        ax4 = P.subplot2grid((3,3), (0,2), rowspan=1, colspan=1)
+        img = mpimg.imread(str(int(id))+'.jpeg')
+        ax4.imshow(img)
+        ax4.tick_params(axis='x', labelbottom='off', labeltop='off')
+        ax4.tick_params(axis='y', labelleft='off', labelright='off')
     P.tight_layout()
     P.subplots_adjust(wspace=0.0)
     P.subplots_adjust(hspace=0.0)
+    save_fig = 'starfpy_result_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
+    fig.savefig(save_fig)
     return fig
 
 
 """ Load the magnitude bandpass filters using idl save """
-filters = idlsave.read('/Users/becky/Projects/Green-Valley-Project/kevin_idl/ugriz.sav')
+filters = idlsave.read('/Volumes/Data/smethurst/Green-Valley-Project/kevin_idl/ugriz.sav')
 fuvwave= filters.ugriz.fuvwave[0]
 fuvtrans = filters.ugriz.fuvtrans[0]
 nuvwave= filters.ugriz.nuvwave[0]
