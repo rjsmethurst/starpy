@@ -22,13 +22,8 @@ import pylab as P
 import os 
 
 def extract_model_data(modelfile):
-    #modelfile='bc2003_lr_m62_chab_ssp.ised_ASCII'
-    if 'chab' in modelfile:
-        dir = '/Users/becky/Projects/Green-Valley-Project/bc03/models/Padova1994/chabrier/'
-    else:
-        dir = '/Users/becky/Projects/Green-Valley-Project/bc03/models/Padova1994/salpeter/'
 #Open the file loaded into the funciton and read each line
-    file = open(dir+modelfile, 'r')
+    file = open(modelfile, 'r')
     lines = file.readlines()
     file.close()
 #Determine whether the file is high resolution or low resolution and therefore define the number of wavelengths which will be present
@@ -102,7 +97,7 @@ def extract_model_data(modelfile):
     if 'chab' in modelfile:
         new_dir = dir+'/Padova1994/chabrier/ASCII/'
     else:
-            new_dir = dir+'/Padova1994/salpeter/ASCII/'
+        new_dir = dir+'/Padova1994/salpeter/ASCII/'
     if not os.path.exists(new_dir):
         os.makedirs(new_dir)
     else:
