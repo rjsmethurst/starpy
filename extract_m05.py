@@ -18,17 +18,17 @@
 #############################################################################
 
 import numpy as N
-import pylab as P
 import os 
 
 def extract_model_data(modelfile):
+    print modelfile
 #Open the file loaded into the funciton and read each line
     if os.path.exists(modelfile) == False:
         pass
     else:
-        file = N.loadtxt(dir+modelfile)
+        p = N.loadtxt(modelfile)
         num_wave = 1221
-        num_ages = 67
+        num_ages = N.unique(p[:,0]).shape[0]
         extract = N.zeros((num_wave+1, num_ages+1,))
         extract[1:,0] = p[0:num_wave, 2]
         extract[0,1:] = N.unique(p[:,0])
@@ -44,14 +44,14 @@ def extract_model_data(modelfile):
             os.makedirs(new_dir)
         else:
             pass
-        N.savetxt(new_dir+'extracted_'+modelfile[-14:], seds, fmt='%1.8E')
+        N.savetxt(new_dir+'extracted_'+modelfile[-14:], extract, fmt='%1.8E')
 
 ### Extract all the M05 files: all combinations of chabrier & salpeter IMFs, high res & low res and all metallicities
 metal = ['z007', 'z004', 'z002', 'z001', 'z0001', 'z10m4']
+dir = str(raw_input('Location of downloaded SPS files e.g. "~/m05/" : '))
 for n in range(len(metal)):
-    dir = str(raw_input('Location of downloaded SPS files e.g. "~/m05/" : '))
     extract_model_data(dir+'/Sed_Mar05_SSP_Kroupa/sed.kr'+metal[n]+'.rhb')
     extract_model_data(dir+'/Sed_Mar05_SSP_Kroupa/sed.kr'+metal[n]+'.bhb')
     extract_model_data(dir+'/Sed_Mar05_SSP_Salpeter/sed.ss'+metal[n]+'.bhb')
-    extract_model_data(dir+'/Sed_Mar05_SSP_Salpeter/sed.ss'+metal[n]+'.rhb'')
+    extract_model_data(dir+'/Sed_Mar05_SSP_Salpeter/sed.ss'+metal[n]+'.rhb')
     
