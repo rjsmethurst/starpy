@@ -42,7 +42,7 @@ INPUTS:
         :ps:
         Galaxy Zoo smooth morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
         
-RETURNS:
+        :RETURNS:
         :samples:
         Array of shape (nsteps*nwalkers, 2) containing the positions of the walkers at all steps for all 4 parameters.
         :samples_save:
@@ -52,4 +52,8 @@ RETURNS:
         
         
         
-Data inputs occur with the starfpy.py file, all necessary functions are in the posterior.py file. You can generate a look up table in two colours with lookup.py or you can use the full functions that take a give SFH and calculate the SED at each time step defined with the fluxes.py file. You must also extract the necessary SPS models into .ised_ASCII files with the extract.py file.  
+Data inputs occur with the starfpy.py file, all necessary functions are in the posterior.py file. 
+
+You can generate a look up table in two colours with lookup.py or you can use the full functions that take a give SFH and calculate the SED at each time step defined with the fluxes.py file. 
+
+You must also extract the necessary SPS models into ASCII files with the 'extract_bc03.py' file.  
