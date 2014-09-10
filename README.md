@@ -57,3 +57,5 @@ Data inputs occur with the starfpy.py file, all necessary functions are in the p
 You can generate a look up table in two colours with lookup.py or you can use the full functions that take a give SFH and calculate the SED at each time step defined with the fluxes.py file. 
 
 You must also extract the necessary SPS models into ASCII files with the 'extract_bc03.py' file.  
+
+u-r and NUV-u look up tables have already been generated for 50 observed ages, 100 tau and 100 t values for an exponential decline SFH model. These can be used for a quick starfpy run which is less customised. 
