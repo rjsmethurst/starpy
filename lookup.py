@@ -14,10 +14,13 @@ grid = N.array(list(product(age, tau, tq)))
 ur = N.zeros(len(grid))
 nuv = N.zeros(len(grid))
 
+savename1 = str(raw_input('What should I save the first lookup table as? e.g. "~/col1_look_up.npy" : '))
+savename2 = str(raw_input('What should I save the second lookup table as? e.g. "~/col2_look_up.npy" : '))
+
 'calculating colours...'
 for n in range(len(grid)):
     if n%10000 == 0:
         print '% complete: ', (float(n)/len(grid))*100
     nuv[n], ur[n] = predict_c_one([grid[n,2], grid[n,1]], grid[n,0])
-    N.save('nuv_look_up.npy', nuv)
-    N.save('ur_look_up.npy', ur)
+    N.save(savename1, nuv)
+    N.save(savename2, ur)

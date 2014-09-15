@@ -21,7 +21,6 @@ import numpy as N
 import os 
 
 def extract_model_data(modelfile):
-    print modelfile
 #Open the file loaded into the funciton and read each line
     if os.path.exists(modelfile) == False:
         pass
@@ -31,7 +30,7 @@ def extract_model_data(modelfile):
         num_ages = N.unique(p[:,0]).shape[0]
         extract = N.zeros((num_wave+1, num_ages+1,))
         extract[1:,0] = p[0:num_wave, 2]
-        extract[0,1:] = N.unique(p[:,0])
+        extract[0,1:] = N.unique(p[:,0])*1E9 # convert to Gyr
         n=0
         for j in range(num_ages):
             extract[1:,j+1] = p[n:n+num_wave, -1]
