@@ -59,3 +59,8 @@ You can generate a look up table in two colours with lookup.py or you can use th
 You must also extract the necessary SPS models into ASCII files with the 'extract_bc03.py' file or 'extract_m05.py' file if you wish to use the BC03 or M05 SPS models.  
 
 u-r and NUV-u look up tables have already been generated for 50 observed ages, 100 tau and 100 t values for an exponential decline SFH model for BC03 models. These can be used for a quick starfpy run which is less customised. 
+
+License
+---------
+
+Apache 2.
