@@ -9,7 +9,6 @@ import pylab as P
 import pyfits as F
 import idlsave
 import fluxes 
-import pyfits as F
 import emcee
 import triangle
 import time
@@ -30,7 +29,9 @@ P.rc('ytick', labelsize='medium')
 P.rc('axes', labelsize='x-large')
 
 """We first define the directory in which we will find the BC03 model, extracted from the original files downloaded from the BC03 website into a usable format. Here we implement a solar metallicity model with a Chabrier IMF."""
-dir ='/Volumes/Data/smethurst/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
+#dir ='/Volumes/Data/smethurst/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
+dir = raw_input('Directory containing desired SPS model (default is to use solar metallicity): ')
+#m62 is the solar metallicity model of BC03 - if you wish to use another chnage this number
 model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
 data = N.loadtxt(dir+model)
 n=0
@@ -106,7 +107,6 @@ def predict_c_one(theta, age):
     u_r_age = N.interp(age, t, u_r)
     return nuv_u_age, u_r_age
     
-
 def get_colours(time, flux, data):
     """" Calculates the colours of a given sfh fluxes across time given the BC03 models from the magnitudes of the SED.
         
@@ -134,7 +134,6 @@ def lookup_col_one(theta, age):
     ur_pred = u(theta[0], theta[1])
     nuv_pred = v(theta[0], theta[1])
     return nuv_pred, ur_pred
-
 
 def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
@@ -169,7 +168,6 @@ def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     tq, tau = theta
     pred_nuvu, pred_ur = lookup_col_one(theta, age)
     return -0.5*N.log(2*N.pi*sigma_ur**2)-0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*N.log10(2*N.pi*sigma_nuvu**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
-
 
 def lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     """Function which takes the likelihood for ONE quenching model for both disc and smooth like galaxies and sums across all galaxies to return one value for a given set of theta = [tqd, taud, tqs, taus]. It also incorporates the morphological classifications from Galaxy Zoo for a smooth and disc galaxy. 
@@ -214,7 +212,6 @@ def lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     S = N.log(ps) + s
     return N.sum(N.logaddexp(D, S))
 
-# Prior likelihood on theta values given the inital w values assumed for the mean and stdev
 def lnprior(theta):
     """ Function to calcualted the prior likelihood on theta values given the inital w values assumed for the mean and standard deviation of the tq and tau parameters. Defined ranges are specified - outside these ranges the function returns -N.inf and does not calculate the posterior probability. 
         
@@ -236,7 +233,6 @@ def lnprior(theta):
     else:
         return -N.inf
 
-# Overall likelihood function combining prior and model
 def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     """Overall posterior function combiningin the prior and calculating the likelihood. Also prints out the progress through the code with the use of n. 
         
@@ -333,8 +329,8 @@ def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu
         Location at which the :samples: array was saved to. 
         
         """
-#    if len(age) != len(ur):
-#        raise SystemExit('Number of ages does not coincide with number of galaxies...')
+    if len(age) != len(ur):
+      raise SystemExit('Number of ages does not coincide with number of galaxies...')
     global u
     global v
     a = N.searchsorted(ages, age)
@@ -370,8 +366,6 @@ def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu
     print 'Main emcee run completed.'
     return samples, samples_save
 
-
-#Define function to plot the walker positions as a function of the step
 def walker_plot(samples, nwalkers, limit, id):
     """ Plotting function to visualise the steps of the walkers in each parameter dimension for smooth and disc theta values. 
         
