@@ -1,9 +1,9 @@
-starfpy
+starpy
 =======
 
-A python code to determine the quenched star formation history parameters of galaxy populations using the MCMC algorithm emcee (http://dan.iel.fm/emcee/current/). Please ensure this module is installed and can be imported into your Python installation.
+A python code to determine the quenched star formation history parameters of a galaxy using the MCMC algorithm emcee (http://dan.iel.fm/emcee/current/). Please ensure this module is installed and can be imported into your Python installation.
 
-The sample function implements the emcee EnsembleSampler function for the population of galaxies input. Burn-in is run and calculated for the length specified before the sampler is reset and then run for the length of steps specified. 
+The sample function implements the emcee EnsembleSampler function for the galaxy colours input. Burn-in is run and calculated for the length specified before the sampler is reset and then run for the length of steps specified. 
         
         :INPUTS:
         :ndim:
@@ -22,7 +22,7 @@ The sample function implements the emcee EnsembleSampler function for the popula
         The positions in the tq and tau parameter space to start for both disc and smooth parameters. An array of shape (1,2).
         
         :ur:
-        Observed u-r colour of a galaxy; k-corrected. An array of shape (N,1) or (N,).
+        Observed u-r colour of a galaxy; k-corrected. An array of shape (N,1) or (N,). 
         
         :sigma_ur:
         Error on the observed u-r colour of a galaxy. An array of shape (N,1) or (N,).
@@ -52,10 +52,15 @@ The sample function implements the emcee EnsembleSampler function for the popula
         
         
         
-Data inputs occur with the starfpy.py file, all necessary functions are in the posterior.py file. 
+Data inputs occur with the starpy.py file, all necessary functions are in the posterior.py file. 
 
 You can generate a look up table in two colours with lookup.py or you can use the full functions that take a give SFH and calculate the SED at each time step defined with the fluxes.py file. 
 
-You must also extract the necessary SPS models into ASCII files with the 'extract_bc03.py' file.  
+You must also extract the necessary SPS models into ASCII files with the 'extract_bc03.py' file or 'extract_m05.py' file if you wish to use the BC03 or M05 SPS models.  
 
-u-r and NUV-u look up tables have already been generated for 50 observed ages, 100 tau and 100 t values for an exponential decline SFH model. These can be used for a quick starfpy run which is less customised. 
+u-r and NUV-u look up tables have already been generated for 50 observed ages, 100 tau and 100 t values for an exponential decline SFH model for BC03 models. These can be used for a quick starfpy run which is less customised. 
+
+License
+---------
+
+Apache 2.
