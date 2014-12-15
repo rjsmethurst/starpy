@@ -483,7 +483,7 @@ def corner_plot(s, labels, extents, bf, id):
 
 
 """ Load the magnitude bandpass filters using idl save """
-filters = idlsave.read('/Volumes/Data/smethurst/Green-Valley-Project/kevin_idl/ugriz.sav')
+filters = idlsave.read('~/ugriz.sav')
 fuvwave= filters.ugriz.fuvwave[0]
 fuvtrans = filters.ugriz.fuvtrans[0]
 nuvwave= filters.ugriz.nuvwave[0]
