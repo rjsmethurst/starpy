@@ -41,7 +41,7 @@ Data inputs occur with the starfpy.py file, all necessary functions are in the p
         
 For example:
 
-        python glamdring_run.py 2.2564125061 0.0635264205263 1.66131782532 0.12668874395 0.0246473997831 0.96025395 0.033525165 1237661968496984320 163.734802246 41.4984283447
+        python starpy.py 2.2564125061 0.0635264205263 1.66131782532 0.12668874395 0.0246473997831 0.96025395 0.033525165 1237661968496984320 163.734802246 41.4984283447
         
 Returns the 50th percentile of the walker positions from emcee for the quenched star formation history parameters [t, tau] as:
         
