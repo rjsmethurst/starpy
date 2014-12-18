@@ -30,9 +30,8 @@ P.rc('ytick', labelsize='medium')
 P.rc('axes', labelsize='x-large')
 
 """We first define the directory in which we will find the BC03 model, extracted from the original files downloaded from the BC03 website into a usable format. Here we implement a solar metallicity model with a Chabrier IMF."""
-dir ='/Volumes/Data/smethurst/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
 model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
-data = N.loadtxt(dir+model)
+data = N.loadtxt(model)
 n=0
 
 print 'gridding...'
@@ -333,8 +332,6 @@ def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu
         Location at which the :samples: array was saved to. 
         
         """
-#    if len(age) != len(ur):
-#        raise SystemExit('Number of ages does not coincide with number of galaxies...')
     global u
     global v
     a = N.searchsorted(ages, age)
@@ -477,13 +474,13 @@ def corner_plot(s, labels, extents, bf, id):
     P.tight_layout()
     P.subplots_adjust(wspace=0.0)
     P.subplots_adjust(hspace=0.0)
-    save_fig = 'starfpy_result_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
+    save_fig = 'starpy_result_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
     fig.savefig(save_fig)
     return fig
 
 
 """ Load the magnitude bandpass filters using idl save """
-filters = idlsave.read('/Volumes/Data/smethurst/Green-Valley-Project/kevin_idl/ugriz.sav')
+filters = idlsave.read('ugriz.sav')
 fuvwave= filters.ugriz.fuvwave[0]
 fuvtrans = filters.ugriz.fuvtrans[0]
 nuvwave= filters.ugriz.nuvwave[0]
