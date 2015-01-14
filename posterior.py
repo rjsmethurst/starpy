@@ -70,8 +70,8 @@ def expsfh(tq, tau, time):
     sfr[a:] = c_sfr*N.exp(-(time[a:]-tq)/tau)
     return sfr
 
-def expsfh_mass(ur, Mr, tq, tau, time):
-    """Calculate exponential decline star formation rates at each time step input by matching to the mass of the observed galaxy. This is calculated from the mass-to-light ratio that is a function of one color band u-r as in Bladry et al. (2006; see Figure 5) who fit to data from Glazebrrok et al (2004) and Kauffmann et al (2003).
+def expsfh_mass(ur, Mr, age, tq, tau, time):
+    """Calculate exponential decline star formation rates at each time step input by matching to the mass of the observed galaxy at the observed time. This is calculated from the mass-to-light ratio that is a function of one color band u-r as in Bladry et al. (2006; see Figure 5) who fit to data from Glazebrrok et al (2004) and Kauffmann et al (2003).
        
        INPUT:
 
@@ -80,6 +80,9 @@ def expsfh_mass(ur, Mr, tq, tau, time):
 
         :Mr:
         Absolute r-band magnitude, needed to calculate the mass of the observed galaxy 
+
+        :age:
+        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
 
         :tq: 
         The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
@@ -95,7 +98,7 @@ def expsfh_mass(ur, Mr, tq, tau, time):
         Array of the same dimensions of time containing the sfr at each timestep.
         """ 
 
-    t_end = cosmo.age(0)
+    t_end = age # time at which to integrate under the exponential curve until to gain the final mass 
     if ur <=2.1:
         log_m_l = -0.95 + 0.56 * ur
     else:
