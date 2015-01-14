@@ -70,6 +70,44 @@ def expsfh(tq, tau, time):
     sfr[a:] = c_sfr*N.exp(-(time[a:]-tq)/tau)
     return sfr
 
+def expsfh_mass(ur, Mr, tq, tau, time):
+    """Calculate exponential decline star formation rates at each time step input by matching to the mass of the observed galaxy. This is calculated from the mass-to-light ratio that is a function of one color band u-r as in Bladry et al. (2006; see Figure 5) who fit to data from Glazebrrok et al (2004) and Kauffmann et al (2003).
+       
+       INPUT:
+
+        :ur:
+        u-r optical colour, needed to calculate the mass of the observed galaxy
+
+        :Mr:
+        Absolute r-band magnitude, needed to calculate the mass of the observed galaxy 
+
+        :tq: 
+        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
+
+        :tau:
+        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5. 
+
+        :time:
+        An array of time values at which the SFR is calcualted at each step. 
+        
+        RETURNS:
+        :sfr:
+        Array of the same dimensions of time containing the sfr at each timestep.
+        """ 
+
+    t_end = cosmo.age(0)
+    if ur <=2.1:
+        log_m_l = -0.95 + 0.56 * ur
+    else:
+        log_m_l = -0.16 + 0.18 * ur
+    m_msun = 10**(((4.62 - Mr)/2.5) + log_m_l)
+    print 'Mass [M_solar]', m_msun
+    c_sfr = (m_msun/(tq + tau*(1 - N.exp((tq - t_end)/tau)))) / 1E9
+    a = time.searchsorted(tq)
+    sfr = N.ones(len(time))*c_sfr
+    sfr[a:] = c_sfr*N.exp(-(time[a:]-tq)/tau)
+    return sfr 
+
 def predict_c_one(theta, age):
     """ This function predicts the u-r and nuv-u colours of a galaxy with a SFH defined by [tq, tau], according to the BC03 model at a given "age" i.e. observation time. It calculates the colours at all times then interpolates for the observed age - it has to this in order to work out the cumulative mass across the SFH to determine how much each population of stars contributes to the flux at each time step. 
         
