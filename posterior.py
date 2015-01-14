@@ -45,7 +45,7 @@ ur_pred = N.load('ur_look_up_ssfr.npy')
 lu = N.append(nuv_pred.reshape(-1,1), ur_pred.reshape(-1,1), axis=1)
 
 def expsfh(tq, tau, time):
-    """ This function when given a single combination of [tq, tau] values will calcualte the SFR at all times. First calculate the sSFR at all times as defined by Peng et al. (2010) - then the SFR at the specified tq of quenching and set the SFR as constant at this value before this time. Beyond this time the SFR is an exponentially declining function with timescale tau. 
+    """ This function when given a single combination of [tq, tau] values will calcualte the SFR at all times. First calculate the sSFR at all times as defined by Peng et al. (2010) - then the SFR at the specified time of quenching, tq and set the SFR at this value  at all times before tq. Beyond this time the SFR is an exponentially declining function with timescale tau. 
         
         INPUT:
         :tau:
