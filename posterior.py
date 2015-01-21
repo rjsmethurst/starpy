@@ -43,12 +43,12 @@ if method == 'yes' or method =='y':
         ur_pred = N.load('ur_look_up_ssfr.npy')
         lu = N.append(nuv_pred.reshape(-1,1), ur_pred.reshape(-1,1), axis=1)
     elif prov=='no' or prov=='n':
-        col1 = str(raw_input('Location of your first colour look up table :'))
-        col2 = str(raw_input('Location of your second colour look up table :'))
-        one = raw_input('Define first axis values of look up table e.g. N.linspace(start, stop, len(axis1)) :')
-        two = raw_input('Define second axis values of look up table e.g. N.linspace(start, stop, len(axis1)) :')
-        three = raw_input('Define third axis values of look up table e.g. N.linspace(start, stop, len(axis1)) :')
-        grid = N.array(list(product(one, two, three)))
+        col1 = str(raw_input('Location of your NUV-u colour look up table :'))
+        col2 = str(raw_input('Location of your u-r colour look up table :'))
+        ages = raw_input('Define first axis values (ages) of look up table e.g.$
+        tau = raw_input('Define second axis values (tau) of look up table e.g. $
+        tq = raw_input('Define third axis values (tq) of look up table e.g. N.l$
+        grid = N.array(list(product(ages, tau, tq)))
         print 'loading...'
         nuv_pred = N.load(col1)
         ur_pred = N.load(col2)
