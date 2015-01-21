@@ -59,7 +59,7 @@ if method == 'yes' or method =='y':
     else:
         sys.exit("You didn't give a valid answer (yes/no). Try running again.")
     
-    def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
+    def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
         """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
         
         :theta:
@@ -98,7 +98,7 @@ elif method == 'no' or method =='n':
     model = str(raw_input('Location of the extracted (.ised_ASCII) SPS model to use to predict the u-r and NUV-u colours, e.g. ~/extracted_bc2003_lr_m62_chab_ssp.ised_ASCII :'))
     data = N.loadtxt(model)
     import fluxes 
-    def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
+    def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
         """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
         
             :theta:
@@ -268,50 +268,6 @@ def lookup_col_one(theta, age):
     nuv_pred = v(theta[0], theta[1])
     return nuv_pred, ur_pred
 
-
-def lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
-    """Function which takes the likelihood for ONE quenching model for both disc and smooth like galaxies and sums across all galaxies to return one value for a given set of theta = [tqd, taud, tqs, taus]. It also incorporates the morphological classifications from Galaxy Zoo for a smooth and disc galaxy. 
-        
-        :theta:
-        An array of size (1,4) containing the values [tq, tau] for both smooth and dsic galaxies in Gyr.
-        
-        :tq:
-        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time. Can be either for smooth or disc galaxies.
-        
-        :tau:
-        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5. Can be either for smooth or disc galaxies.
-        
-        :ur:
-        Observed u-r colour of a galaxy; k-corrected.
-        
-        :sigma_ur:
-        Error on the observed u-r colour of a galaxy
-        
-        :nuvu:
-        Observed nuv-u colour of a galaxy; k-corrected.
-        
-        :sigma_nuvu:
-        Error on the observed nuv-u colour of a galaxy
-        
-        :age:
-        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
-        
-        :pd:
-        Galaxy Zoo disc morphological classification debiased vote fraction
-        
-        :ps:
-        Galaxy Zoo smooth morphological classification debiased vote fraction
-        
-        RETURNS:
-        One value of the likelihood at the given :theta: summed over all the galaxies in the sample
-        """
-    ts, taus, td, taud = theta
-    d = lnlike_one([td, taud], ur, sigma_ur, nuvu, sigma_nuvu, age)
-    s = lnlike_one([ts, taus], ur, sigma_ur, nuvu, sigma_nuvu, age)
-    D = N.log(pd) + d
-    S = N.log(ps) + s
-    return N.sum(N.logaddexp(D, S))
-
 # Prior likelihood on theta values given the inital w values assumed for the mean and stdev
 def lnprior(theta):
     """ Function to calcualted the prior likelihood on theta values given the inital w values assumed for the mean and standard deviation of the tq and tau parameters. Defined ranges are specified - outside these ranges the function returns -N.inf and does not calculate the posterior probability. 
@@ -335,7 +291,7 @@ def lnprior(theta):
         return -N.inf
 
 # Overall likelihood function combining prior and model
-def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
+def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
     """Overall posterior function combiningin the prior and calculating the likelihood. Also prints out the progress through the code with the use of n. 
         
         :theta:
@@ -362,12 +318,6 @@ def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
         :age:
         Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr. An array of shape (N,1) or (N,).
         
-        :pd:
-        Galaxy Zoo disc morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
-        
-        :ps:
-        Galaxy Zoo smooth morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
-        
         RETURNS:
         Value of the posterior function for the given :theta: value.
         
@@ -379,9 +329,9 @@ def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     lp = lnprior(theta)
     if not N.isfinite(lp):
         return -N.inf
-    return lp + lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps)
+    return lp + lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age)
 
-def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps, id):
+def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu, age, id):
     """ Function to implement the emcee EnsembleSampler function for the sample of galaxies input. Burn in is run and calcualted fir the length specified before the sampler is reset and then run for the length of steps specified. 
         
         :ndim:
@@ -415,12 +365,6 @@ def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu
         :age:
         Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr. An array of shape (N,1) or (N,).
         
-        :pd:
-        Galaxy Zoo disc morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
-        
-        :ps:
-        Galaxy Zoo smooth morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
-        
         :id:
         ID number to specify which galaxy this run is for.
         
@@ -449,7 +393,7 @@ def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu
         pass
     print 'emcee running...'
     p0 = [start + 1e-4*N.random.randn(ndim) for i in range(nwalkers)]
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2, args=(ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps))
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2, args=(ur, sigma_ur, nuvu, sigma_nuvu, age))
     """ Burn in run here..."""
     pos, prob, state = sampler.run_mcmc(p0, burnin)
     lnp = sampler.flatlnprobability
