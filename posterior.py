@@ -8,7 +8,6 @@ import scipy as S
 import pylab as P
 import pyfits as F
 import idlsave
-import fluxes 
 import pyfits as F
 import emcee
 import triangle
@@ -93,8 +92,9 @@ if method == 'yes' or method =='y':
     
 elif method == 'no' or method =='n':
     """We first define the directory in which we will find the BC03 model, extracted from the original files downloaded from the BC03 website into a usable format. Here we implement a solar metallicity model with a Chabrier IMF."""
-    model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
+    model = str(raw_input('Location of the SPS model to use to predict the u-r and NUV-u colours, e.g. ~/extracted_bc2003_lr_m62_chab_ssp.ised_ASCII :')
     data = N.loadtxt(model)
+    import fluxes 
     def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
         
