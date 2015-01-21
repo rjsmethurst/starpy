@@ -45,9 +45,12 @@ if method == 'yes' or method =='y':
     elif prov=='no' or prov=='n':
         col1 = str(raw_input('Location of your NUV-u colour look up table :'))
         col2 = str(raw_input('Location of your u-r colour look up table :'))
-        ages = raw_input('Define first axis values (ages) of look up table e.g.$
-        tau = raw_input('Define second axis values (tau) of look up table e.g. $
-        tq = raw_input('Define third axis values (tq) of look up table e.g. N.l$
+        one = raw_input('Define first axis values (ages) of look up table start, stop, len(axis1); e.g. 10, 13.8, 50 :')
+        ages = N.linspace(one)
+        two = raw_input('Define second axis values (tau) of look up table start, stop, len(axis1); e.g. 0, 4, 100 : ')
+        tau = N.linspace(two)
+        three = raw_input('Define third axis values (tq) of look up table start, stop, len(axis1); e.g. 0, 13.8, 100 : ')
+        tq = N.linspace(three)
         grid = N.array(list(product(ages, tau, tq)))
         print 'loading...'
         nuv_pred = N.load(col1)
