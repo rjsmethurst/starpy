@@ -54,7 +54,7 @@ if method == 'yes' or method =='y':
         ur_pred = N.load(col2)
         lu = N.append(nuv_pred.reshape(-1,1), ur_pred.reshape(-1,1), axis=1)
     else:
-        sys.exit("You didn't give a valid answer (yes/no). Try running again.)
+        sys.exit("You didn't give a valid answer (yes/no). Try running again.")
     
     def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
         """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
@@ -130,7 +130,7 @@ elif method == 'no' or method =='n':
         return -0.5*N.log(2*N.pi*sigma_ur**2)-0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*N.log10(2*N.pi*sigma_nuvu**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
 
 else:
-    sys.exit("You didn't give a valid answer (yes/no). Try running again.)
+    sys.exit("You didn't give a valid answer (yes/no). Try running again.")
     
 n=0
 
