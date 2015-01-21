@@ -428,7 +428,7 @@ def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu
         Location at which the :samples: array was saved to. 
         
         """
-    if method == 'yes' or method='y':
+    if method == 'yes' or method=='y':
         global u
         global v
         a = N.searchsorted(ages, age)
