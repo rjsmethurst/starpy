@@ -488,7 +488,7 @@ def corner_plot(s, labels, extents, bf, id):
     ax1.axvline(x=bf[0][0]-bf[0][2], c='b', linestyle='--')
     ax1.set_xlim(extents[0][0], extents[0][1])
     ax12 = ax1.twiny()
-    ax12.set_xlim(extent[0][0], extent[0][1])
+    ax12.set_xlim(extents[0][0], extents[0][1])
     ax12.set_xticks(N.array([1.87, 3.40, 6.03, 8.77, 10.9, 12.5]))
     ax12.set_xticklabels(N.array([3.5, 2.0 , 1.0, 0.5, 0.25, 0.1]))
     [l.set_rotation(45) for l in ax12.get_xticklabels()]
