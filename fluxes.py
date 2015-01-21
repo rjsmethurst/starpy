@@ -7,9 +7,8 @@ import pylab as P
 """ Functions to calculate the colours at every time step in a defined SFH using a specified extracted SPS model.
     """
 
-#dir ='/home/smethurst/Projects/Green-Valley-Project/bc03/models/Padova1994/chabrier/ASCII/'
-dir = str(raw_input('Which extracted SPS (.ised_ASCII) model should I use? : '))
-data = N.loadtxt(dir)
+model = str(raw_input('Tell me again the location of the extracted (.ised_ASCII) SPS model to use to predict the u-r and NUV-u colours, e.g. ~/extracted_bc2003_lr_m62_chab_ssp.ised_ASCII :'))
+data = N.loadtxt(model)
 model_ages = data[0,1:]
 model_lambda = data[1:,0]
 model_fluxes = data[1:,1:]

@@ -8,7 +8,6 @@ import scipy as S
 import pylab as P
 import pyfits as F
 import idlsave
-import fluxes 
 import pyfits as F
 import emcee
 import triangle
@@ -20,32 +19,126 @@ from scipy.stats import kde
 from scipy.interpolate import LinearNDInterpolator
 from scipy.interpolate import interp2d
 from itertools import product
+import sys
 
 cosmo = FlatLambdaCDM(H0 = 71.0, Om0 = 0.26)
 
-font = {'family':'serif', 'size':25}
+font = {'family':'serif', 'size':16}
 P.rc('font', **font)
 P.rc('xtick', labelsize='medium')
 P.rc('ytick', labelsize='medium')
-P.rc('axes', labelsize='x-large')
+P.rc('axes', labelsize='medium')
 
-"""We first define the directory in which we will find the BC03 model, extracted from the original files downloaded from the BC03 website into a usable format. Here we implement a solar metallicity model with a Chabrier IMF."""
-model = 'extracted_bc2003_lr_m62_chab_ssp.ised_ASCII'
-data = N.loadtxt(model)
+method = raw_input('Do you wish to use a look-up table? (yes/no) :')
+if method == 'yes' or method =='y':
+    prov = raw_input('Do you wish to use the provided u-r and NUV-u look up tables? (yes/no) :')
+    if prov == 'yes' or prov =='y':
+        print 'gridding...'
+        tq = N.linspace(0.003, 13.8, 100)
+        tau = N.linspace(0.003, 4, 100)
+        ages = N.linspace(10.88861228, 13.67023409, 50)
+        grid = N.array(list(product(ages, tau, tq)))
+        print 'loading...'
+        nuv_pred = N.load('nuv_look_up_ssfr.npy')
+        ur_pred = N.load('ur_look_up_ssfr.npy')
+        lu = N.append(nuv_pred.reshape(-1,1), ur_pred.reshape(-1,1), axis=1)
+    elif prov=='no' or prov=='n':
+        col1 = str(raw_input('Location of your NUV-u colour look up table :'))
+        col2 = str(raw_input('Location of your u-r colour look up table :'))
+        one = N.array(input('Define first axis values (ages) of look up table start, stop, len(axis1); e.g. 10, 13.8, 50 :'))
+        ages = N.linspace(float(one[0]), float(one[1]), float(one[2]))
+        two = N.array(input('Define second axis values (tau) of look up table start, stop, len(axis1); e.g. 0, 4, 100 : '))
+        tau = N.linspace(float(two[0]), float(two[1]), float(two[2]))
+        three = N.array(input('Define third axis values (tq) of look up table start, stop, len(axis1); e.g. 0, 13.8, 100 : '))
+        tq = N.linspace(float(three[0]), float(three[1]), float(three[2]))
+        grid = N.array(list(product(ages, tau, tq)))
+        print 'loading...'
+        nuv_pred = N.load(col1)
+        ur_pred = N.load(col2)
+        lu = N.append(nuv_pred.reshape(-1,1), ur_pred.reshape(-1,1), axis=1)
+    else:
+        sys.exit("You didn't give a valid answer (yes/no). Try running again.")
+    
+    def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
+        """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
+        
+        :theta:
+        An array of size (1,2) containing the values [tq, tau] in Gyr.
+        
+        :tq:
+        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
+        
+        :tau:
+        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5.
+        
+        :ur:
+        Observed u-r colour of a galaxy; k-corrected.
+        
+        :sigma_ur:
+        Error on the observed u-r colour of a galaxy
+        
+        :nuvu:
+        Observed nuv-u colour of a galaxy; k-corrected.
+        
+        :sigma_nuvu:
+        Error on the observed nuv-u colour of a galaxy
+        
+        :age:
+        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
+        
+        RETURNS:
+        Array of same shape as :age: containing the likelihood for each galaxy at the given :theta:
+            """
+        tq, tau = theta
+        pred_nuvu, pred_ur = lookup_col_one(theta, age)
+        return -0.5*N.log(2*N.pi*sigma_ur**2)-0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*N.log10(2*N.pi*sigma_nuvu**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
+    
+elif method == 'no' or method =='n':
+    """We first define the directory in which we will find the BC03 model, extracted from the original files downloaded from the BC03 website into a usable format. Here we implement a solar metallicity model with a Chabrier IMF."""
+    model = str(raw_input('Location of the extracted (.ised_ASCII) SPS model to use to predict the u-r and NUV-u colours, e.g. ~/extracted_bc2003_lr_m62_chab_ssp.ised_ASCII :'))
+    data = N.loadtxt(model)
+    import fluxes 
+    def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
+        """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
+        
+            :theta:
+            An array of size (1,2) containing the values [tq, tau] in Gyr.
+        
+            :tq:
+            The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
+            
+            :tau:
+            The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5.
+        
+            :ur:
+            Observed u-r colour of a galaxy; k-corrected.
+        
+            :sigma_ur:
+            Error on the observed u-r colour of a galaxy
+        
+            :nuvu:
+            Observed nuv-u colour of a galaxy; k-corrected.
+        
+            :sigma_nuvu:
+            Error on the observed nuv-u colour of a galaxy
+        
+            :age:
+            Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
+        
+            RETURNS:
+            Array of same shape as :age: containing the likelihood for each galaxy at the given :theta:
+            """
+        tq, tau = theta
+        pred_nuvu, pred_ur = predict_c_one(theta, age)
+        return -0.5*N.log(2*N.pi*sigma_ur**2)-0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*N.log10(2*N.pi*sigma_nuvu**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
+
+else:
+    sys.exit("You didn't give a valid answer (yes/no). Try running again.")
+    
 n=0
 
-print 'gridding...'
-tq = N.linspace(0.003, 13.8, 100)
-tau = N.linspace(0.003, 4, 100)
-ages = N.linspace(10.88861228, 13.67023409, 50)
-grid = N.array(list(product(ages, tau, tq)))
-print 'loading...'
-nuv_pred = N.load('nuv_look_up_ssfr.npy')
-ur_pred = N.load('ur_look_up_ssfr.npy')
-lu = N.append(nuv_pred.reshape(-1,1), ur_pred.reshape(-1,1), axis=1)
-
 def expsfh(tq, tau, time):
-    """ This function when given a single combination of [tq, tau] values will calcualte the SFR at all times. First calculate the sSFR at all times as defined by Peng et al. (2010) - then the SFR at the specified tq of quenching and set the SFR as constant at this value before this time. Beyond this time the SFR is an exponentially declining function with timescale tau. 
+    """ This function when given a single combination of [tq, tau] values will calcualte the SFR at all times. First calculate the sSFR at all times as defined by Peng et al. (2010) - then the SFR at the specified time of quenching, tq and set the SFR at this value  at all times before tq. Beyond this time the SFR is an exponentially declining function with timescale tau. 
         
         INPUT:
         :tau:
@@ -69,6 +162,47 @@ def expsfh(tq, tau, time):
     sfr = N.ones(len(time))*c_sfr
     sfr[a:] = c_sfr*N.exp(-(time[a:]-tq)/tau)
     return sfr
+
+def expsfh_mass(ur, Mr, age, tq, tau, time):
+    """Calculate exponential decline star formation rates at each time step input by matching to the mass of the observed galaxy at the observed time. This is calculated from the mass-to-light ratio that is a function of one color band u-r as in Bladry et al. (2006; see Figure 5) who fit to data from Glazebrrok et al (2004) and Kauffmann et al (2003).
+       
+       INPUT:
+
+        :ur:
+        u-r optical colour, needed to calculate the mass of the observed galaxy
+
+        :Mr:
+        Absolute r-band magnitude, needed to calculate the mass of the observed galaxy 
+
+        :age:
+        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
+
+        :tq: 
+        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
+
+        :tau:
+        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5. 
+
+        :time:
+        An array of time values at which the SFR is calcualted at each step. 
+        
+        RETURNS:
+        :sfr:
+        Array of the same dimensions of time containing the sfr at each timestep.
+        """ 
+
+    t_end = age # time at which to integrate under the exponential curve until to gain the final mass 
+    if ur <=2.1:
+        log_m_l = -0.95 + 0.56 * ur
+    else:
+        log_m_l = -0.16 + 0.18 * ur
+    m_msun = 10**(((4.62 - Mr)/2.5) + log_m_l)
+    print 'Mass [M_solar]', m_msun
+    c_sfr = (m_msun/(tq + tau*(1 - N.exp((tq - t_end)/tau)))) / 1E9
+    a = time.searchsorted(tq)
+    sfr = N.ones(len(time))*c_sfr
+    sfr[a:] = c_sfr*N.exp(-(time[a:]-tq)/tau)
+    return sfr 
 
 def predict_c_one(theta, age):
     """ This function predicts the u-r and nuv-u colours of a galaxy with a SFH defined by [tq, tau], according to the BC03 model at a given "age" i.e. observation time. It calculates the colours at all times then interpolates for the observed age - it has to this in order to work out the cumulative mass across the SFH to determine how much each population of stars contributes to the flux at each time step. 
@@ -134,85 +268,6 @@ def lookup_col_one(theta, age):
     nuv_pred = v(theta[0], theta[1])
     return nuv_pred, ur_pred
 
-
-def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
-    """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
-        
-        :theta:
-        An array of size (1,2) containing the values [tq, tau] in Gyr.
-        
-        :tq:
-        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
-        
-        :tau:
-        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5.
-        
-        :ur:
-        Observed u-r colour of a galaxy; k-corrected.
-        
-        :sigma_ur:
-        Error on the observed u-r colour of a galaxy
-        
-        :nuvu:
-        Observed nuv-u colour of a galaxy; k-corrected.
-        
-        :sigma_nuvu:
-        Error on the observed nuv-u colour of a galaxy
-        
-        :age:
-        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
-        
-        RETURNS:
-        Array of same shape as :age: containing the likelihood for each galaxy at the given :theta:
-        """
-    tq, tau = theta
-    pred_nuvu, pred_ur = lookup_col_one(theta, age)
-    return -0.5*N.log(2*N.pi*sigma_ur**2)-0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*N.log10(2*N.pi*sigma_nuvu**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
-
-
-def lnlike(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
-    """Function which takes the likelihood for ONE quenching model for both disc and smooth like galaxies and sums across all galaxies to return one value for a given set of theta = [tqd, taud, tqs, taus]. It also incorporates the morphological classifications from Galaxy Zoo for a smooth and disc galaxy. 
-        
-        :theta:
-        An array of size (1,4) containing the values [tq, tau] for both smooth and dsic galaxies in Gyr.
-        
-        :tq:
-        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time. Can be either for smooth or disc galaxies.
-        
-        :tau:
-        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5. Can be either for smooth or disc galaxies.
-        
-        :ur:
-        Observed u-r colour of a galaxy; k-corrected.
-        
-        :sigma_ur:
-        Error on the observed u-r colour of a galaxy
-        
-        :nuvu:
-        Observed nuv-u colour of a galaxy; k-corrected.
-        
-        :sigma_nuvu:
-        Error on the observed nuv-u colour of a galaxy
-        
-        :age:
-        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
-        
-        :pd:
-        Galaxy Zoo disc morphological classification debiased vote fraction
-        
-        :ps:
-        Galaxy Zoo smooth morphological classification debiased vote fraction
-        
-        RETURNS:
-        One value of the likelihood at the given :theta: summed over all the galaxies in the sample
-        """
-    ts, taus, td, taud = theta
-    d = lnlike_one([td, taud], ur, sigma_ur, nuvu, sigma_nuvu, age)
-    s = lnlike_one([ts, taus], ur, sigma_ur, nuvu, sigma_nuvu, age)
-    D = N.log(pd) + d
-    S = N.log(ps) + s
-    return N.sum(N.logaddexp(D, S))
-
 # Prior likelihood on theta values given the inital w values assumed for the mean and stdev
 def lnprior(theta):
     """ Function to calcualted the prior likelihood on theta values given the inital w values assumed for the mean and standard deviation of the tq and tau parameters. Defined ranges are specified - outside these ranges the function returns -N.inf and does not calculate the posterior probability. 
@@ -236,7 +291,7 @@ def lnprior(theta):
         return -N.inf
 
 # Overall likelihood function combining prior and model
-def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
+def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age):
     """Overall posterior function combiningin the prior and calculating the likelihood. Also prints out the progress through the code with the use of n. 
         
         :theta:
@@ -263,12 +318,6 @@ def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
         :age:
         Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr. An array of shape (N,1) or (N,).
         
-        :pd:
-        Galaxy Zoo disc morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
-        
-        :ps:
-        Galaxy Zoo smooth morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
-        
         RETURNS:
         Value of the posterior function for the given :theta: value.
         
@@ -280,9 +329,9 @@ def lnprob(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
     lp = lnprior(theta)
     if not N.isfinite(lp):
         return -N.inf
-    return lp + lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps)
+    return lp + lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age)
 
-def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps, id):
+def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu, age, id):
     """ Function to implement the emcee EnsembleSampler function for the sample of galaxies input. Burn in is run and calcualted fir the length specified before the sampler is reset and then run for the length of steps specified. 
         
         :ndim:
@@ -316,12 +365,6 @@ def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu
         :age:
         Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr. An array of shape (N,1) or (N,).
         
-        :pd:
-        Galaxy Zoo disc morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
-        
-        :ps:
-        Galaxy Zoo smooth morphological classification debiased vote fraction. An array of shape (N,1) or (N,).
-        
         :id:
         ID number to specify which galaxy this run is for.
         
@@ -332,22 +375,25 @@ def sample(ndim, nwalkers, nsteps, burnin, start, ur, sigma_ur, nuvu, sigma_nuvu
         Location at which the :samples: array was saved to. 
         
         """
-    global u
-    global v
-    a = N.searchsorted(ages, age)
-    b = N.array([a-1, a])
-    print 'interpolating function, bear with...'
-    g = grid[N.where(N.logical_or(grid[:,0]==ages[b[0]], grid[:,0]==ages[b[1]]))]
-    values = lu[N.where(N.logical_or(grid[:,0]==ages[b[0]], grid[:,0]==ages[b[1]]))]
-    f = LinearNDInterpolator(g, values, fill_value=(-N.inf))
-    look = f(age, grid[:10000, 1], grid[:10000, 2])
-    lunuv = look[:,0].reshape(100,100)
-    v = interp2d(tq, tau, lunuv)
-    luur = look[:,1].reshape(100,100)
-    u = interp2d(tq, tau, luur)
+    if method == 'yes' or method=='y':
+        global u
+        global v
+        a = N.searchsorted(ages, age)
+        b = N.array([a-1, a])
+        print 'interpolating function, bear with...'
+        g = grid[N.where(N.logical_or(grid[:,0]==ages[b[0]], grid[:,0]==ages[b[1]]))]
+        values = lu[N.where(N.logical_or(grid[:,0]==ages[b[0]], grid[:,0]==ages[b[1]]))]
+        f = LinearNDInterpolator(g, values, fill_value=(-N.inf))
+        look = f(age, grid[:10000, 1], grid[:10000, 2])
+        lunuv = look[:,0].reshape(100,100)
+        v = interp2d(tq, tau, lunuv)
+        luur = look[:,1].reshape(100,100)
+        u = interp2d(tq, tau, luur)
+    else:
+        pass
     print 'emcee running...'
     p0 = [start + 1e-4*N.random.randn(ndim) for i in range(nwalkers)]
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2, args=(ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps))
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2, args=(ur, sigma_ur, nuvu, sigma_nuvu, age))
     """ Burn in run here..."""
     pos, prob, state = sampler.run_mcmc(p0, burnin)
     lnp = sampler.flatlnprobability
@@ -447,7 +493,7 @@ def corner_plot(s, labels, extents, bf, id):
     ax1.axvline(x=bf[0][0]-bf[0][2], c='b', linestyle='--')
     ax1.set_xlim(extents[0][0], extents[0][1])
     ax12 = ax1.twiny()
-    ax12.set_xlim(extent[0][0], extent[0][1])
+    ax12.set_xlim(extents[0][0], extents[0][1])
     ax12.set_xticks(N.array([1.87, 3.40, 6.03, 8.77, 10.9, 12.5]))
     ax12.set_xticklabels(N.array([3.5, 2.0 , 1.0, 0.5, 0.25, 0.1]))
     [l.set_rotation(45) for l in ax12.get_xticklabels()]
@@ -474,8 +520,6 @@ def corner_plot(s, labels, extents, bf, id):
     P.tight_layout()
     P.subplots_adjust(wspace=0.0)
     P.subplots_adjust(hspace=0.0)
-    save_fig = 'starpy_result_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
-    fig.savefig(save_fig)
     return fig
 
 
