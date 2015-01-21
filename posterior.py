@@ -92,7 +92,7 @@ if method == 'yes' or method =='y':
     
 elif method == 'no' or method =='n':
     """We first define the directory in which we will find the BC03 model, extracted from the original files downloaded from the BC03 website into a usable format. Here we implement a solar metallicity model with a Chabrier IMF."""
-    model = str(raw_input('Location of the SPS model to use to predict the u-r and NUV-u colours, e.g. ~/extracted_bc2003_lr_m62_chab_ssp.ised_ASCII :'))
+    model = str(raw_input('Location of the extracted (.ised_ASCII) SPS model to use to predict the u-r and NUV-u colours, e.g. ~/extracted_bc2003_lr_m62_chab_ssp.ised_ASCII :'))
     data = N.loadtxt(model)
     import fluxes 
     def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
