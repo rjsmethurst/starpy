@@ -96,35 +96,35 @@ elif method == 'no' or method =='n':
     data = N.loadtxt(model)
     import fluxes 
     def lnlike_one(theta, ur, sigma_ur, nuvu, sigma_nuvu, age, pd, ps):
-    """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
+        """ Function for determining the likelihood of ONE quenching model described by theta = [tq, tau] for all the galaxies in the sample. Simple chi squared likelihood between predicted and observed colours of the galaxies. 
         
-        :theta:
-        An array of size (1,2) containing the values [tq, tau] in Gyr.
+            :theta:
+            An array of size (1,2) containing the values [tq, tau] in Gyr.
         
-        :tq:
-        The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
+            :tq:
+            The time at which the onset of quenching begins in Gyr. Allowed ranges from the beginning to the end of known cosmic time.
+            
+            :tau:
+            The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5.
         
-        :tau:
-        The exponential timescale decay rate of the star formation history in Gyr. Allowed range from the rest of the functions is 0 < tau [Gyr] < 5.
+            :ur:
+            Observed u-r colour of a galaxy; k-corrected.
         
-        :ur:
-        Observed u-r colour of a galaxy; k-corrected.
+            :sigma_ur:
+            Error on the observed u-r colour of a galaxy
         
-        :sigma_ur:
-        Error on the observed u-r colour of a galaxy
+            :nuvu:
+            Observed nuv-u colour of a galaxy; k-corrected.
         
-        :nuvu:
-        Observed nuv-u colour of a galaxy; k-corrected.
+            :sigma_nuvu:
+            Error on the observed nuv-u colour of a galaxy
         
-        :sigma_nuvu:
-        Error on the observed nuv-u colour of a galaxy
+            :age:
+            Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
         
-        :age:
-        Observed age of a galaxy, often calculated from the redshift i.e. at z=0.1 the age ~ 12.5. Must be in units of Gyr.
-        
-        RETURNS:
-        Array of same shape as :age: containing the likelihood for each galaxy at the given :theta:
-        """
+            RETURNS:
+            Array of same shape as :age: containing the likelihood for each galaxy at the given :theta:
+            """
         tq, tau = theta
         pred_nuvu, pred_ur = predict_c_one(theta, age)
         return -0.5*N.log(2*N.pi*sigma_ur**2)-0.5*((ur-pred_ur)**2/sigma_ur**2)-0.5*N.log10(2*N.pi*sigma_nuvu**2)-0.5*((nuvu-pred_nuvu)**2/sigma_nuvu**2)
