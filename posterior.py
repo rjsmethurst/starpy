@@ -23,11 +23,11 @@ import sys
 
 cosmo = FlatLambdaCDM(H0 = 71.0, Om0 = 0.26)
 
-font = {'family':'serif', 'size':25}
+font = {'family':'serif', 'size':16}
 P.rc('font', **font)
 P.rc('xtick', labelsize='medium')
 P.rc('ytick', labelsize='medium')
-P.rc('axes', labelsize='x-large')
+P.rc('axes', labelsize='medium')
 
 method = raw_input('Do you wish to use a look-up table? (yes/no) :')
 if method == 'yes' or method =='y':
@@ -573,8 +573,6 @@ def corner_plot(s, labels, extents, bf, id):
     P.tight_layout()
     P.subplots_adjust(wspace=0.0)
     P.subplots_adjust(hspace=0.0)
-    save_fig = 'starpy_result_'+str(int(id))+'_'+str(time.strftime('%H_%M_%d_%m_%y'))+'.pdf'
-    fig.savefig(save_fig)
     return fig
 
 
