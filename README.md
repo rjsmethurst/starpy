@@ -52,7 +52,7 @@ The u-r and NUV-u look up tables provided were generated for 50 observed ages, 1
 
 You can generate your own look up table in two colours with lookup.py bu specifying an SPS model (again takes a LONG time). 
 
-If you wish to specify an SPS model it must be in a readable format for `starpy`. You can therefore extract the either the BC03 or M05 SPS models into ASCII files with the `extract_bc03.py` or `extract_m05.py` files which use the raw files as downloaded from either http://www2.iap.fr/users/charlot/bc2003/ or http://www-astro.physics.ox.ac.uk/~maraston/Claudia%27s_Stellar_Population_Models.html
+If you wish to specify an SPS model it must be in a readable format for `starpy`. You can therefore extract the either the BC03 or M05 SPS models into ASCII files with the `extract_bc03.py` or `extract_m05.py` files which use the raw files as downloaded from http://www2.iap.fr/users/charlot/bc2003/ or http://www-astro.physics.ox.ac.uk/~maraston/Claudia%27s_Stellar_Population_Models.html respectively.
 
 If you use this code in your research please cite this paper: Smethurst et al. 2015, MNRAS, 450, 453 and acknowledge:
 
