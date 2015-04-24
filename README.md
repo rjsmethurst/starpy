@@ -56,7 +56,7 @@ If you wish to specify an SPS model it must be in a readable format for `starpy`
 
 If you use this code in your research please cite this paper: Smethurst et al. 2015, MNRAS, 450, 453 and acknowledge:
 
-**"This work has made use of the StarPy star formation history Python code described in Smethurst et al. (2015)."**
+*"This work has made use of the StarPy star formation history Python code described in Smethurst et al. (2015)."*
 
 License
 ---------
