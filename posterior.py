@@ -7,7 +7,7 @@ import numpy as N
 import scipy as S
 import pylab as P
 import pyfits as F
-import idlsave
+from scipy.io.idl import readsav
 import pyfits as F
 import emcee
 import triangle
@@ -524,7 +524,7 @@ def corner_plot(s, labels, extents, bf, id):
 
 
 """ Load the magnitude bandpass filters using idl save """
-filters = idlsave.read('ugriz.sav')
+filters = readsav('ugriz.sav')
 fuvwave= filters.ugriz.fuvwave[0]
 fuvtrans = filters.ugriz.fuvtrans[0]
 nuvwave= filters.ugriz.nuvwave[0]
