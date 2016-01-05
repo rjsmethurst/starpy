@@ -58,8 +58,4 @@ If you use this code in your research please cite this paper: Smethurst et al. 2
 
 *"This work has made use of the StarPy star formation history Python code described in Smethurst et al. (2015)."*
 
-License
----------
-
-Apache 2.
 
