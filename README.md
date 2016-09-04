@@ -54,7 +54,7 @@ You can generate your own look up table in two colours with lookup.py bu specify
 
 If you wish to specify an SPS model it must be in a readable format for `starpy`. You can therefore extract the either the BC03 or M05 SPS models into ASCII files with the `extract_bc03.py` or `extract_m05.py` files which use the raw files as downloaded from http://www2.iap.fr/users/charlot/bc2003/ or http://www-astro.physics.ox.ac.uk/~maraston/Claudia%27s_Stellar_Population_Models.html respectively.
 
-If you use this code in your research please cite this paper: Smethurst et al. 2015, MNRAS, 450, 453 and acknowledge:
+If you use this code in your research please cite this paper: Smethurst et al. 2015, MNRAS, 450, 435 and acknowledge:
 
 *"This work has made use of the StarPy star formation history Python code described in Smethurst et al. (2015)."*
 
